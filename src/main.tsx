@@ -28,16 +28,9 @@ const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
 function Header({ route, guest = false }: { route: string; guest?: boolean }) {
   return (
-    <header>
+    <header className={guest ? "guest-header" : undefined}>
       <div className="header-inner">
-        <div className="brand">
-          The Home Bar
-          {guest && (
-            <span className="guest-island" aria-hidden="true">
-              <span className="guest-pour" />
-            </span>
-          )}
-        </div>
+        <div className="brand">The Home Bar</div>
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
@@ -52,6 +45,11 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
           </nav>
         )}
       </div>
+      {guest && (
+        <span className="guest-island" aria-hidden="true">
+          <span className="guest-pour" />
+        </span>
+      )}
     </header>
   );
 }
