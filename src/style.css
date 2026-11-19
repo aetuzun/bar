@@ -586,3 +586,18 @@ dialog .actions {
     font-size: 0.78rem;
   }
 }
+
+.pour-picker select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 8px;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+  min-height: 44px;
+}
+.pour-picker {
+  border-top: 0;
+}

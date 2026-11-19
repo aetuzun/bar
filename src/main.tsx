@@ -11,7 +11,14 @@ import {
   type Item,
   type Recipe,
 } from "./data";
-import { guestMenu, guestUrl, storage, type BarState } from "./store";
+import { describe, eligible, inStock, PourRow, type Pour } from "./pours";
+import {
+  publishSnapshot,
+  guestMenu,
+  guestUrl,
+  storage,
+  type BarState,
+} from "./store";
 import { Glass } from "./Art";
 import "./style.css";
 
@@ -404,7 +411,15 @@ function MenuDrink({ r }: { r: Recipe }) {
     </>
   );
 }
-function GuestList({ ids, title }: { ids: string[]; title: string }) {
+function GuestList({
+  ids,
+  title,
+  pours = [],
+}: {
+  ids: string[];
+  title: string;
+  pours?: Pour[];
+}) {
   return (
     <>
       <div className="pagehead">
@@ -413,11 +428,15 @@ function GuestList({ ids, title }: { ids: string[]; title: string }) {
       <div className="guest-list">
         {ids.map((id) => (
           <article className="menurow" key={id}>
-            <MenuDrink r={byId(id)} />
+            {byId(id) ? (
+              <MenuDrink r={byId(id)} />
+            ) : (
+              <PourRow pour={pours[Number(id.slice(1))]} />
+            )}
           </article>
         ))}
       </div>
-      {!ids.length && <p>No cocktails on this menu.</p>}
+      {!ids.length && <p>No drinks on this menu.</p>}
     </>
   );
 }
@@ -431,9 +450,11 @@ function Menu({
   toggle: (id: string) => void;
 }) {
   const [notice, setNotice] = useState("");
-  const unavailable = state.draft.some(
-    (id) => !availability(byId(id), state.items).ready,
-  );
+  const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
+  const unavailable = state.draft.some((id) => {
+    const item = bottle(id);
+    return item ? !inStock(item) : !availability(byId(id), state.items).ready;
+  });
   function move(index: number, offset: number) {
     const draft = [...state.draft];
     [draft[index], draft[index + offset]] = [
@@ -469,12 +490,58 @@ function Menu({
           }}
         />
       </label>
+      <label className="title-field pour-picker">
+        <span>Whisky &amp; wine</span>
+        <select
+          aria-label="Add whisky or wine to menu"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) {
+              toggle(e.target.value);
+              setNotice("");
+            }
+          }}
+        >
+          <option value="">Choose a pour…</option>
+          {["Whiskies", "Wine & sparkling"].map((group) => (
+            <optgroup key={group} label={group}>
+              {state.items
+                .filter((item) => eligible(item) && item.group === group)
+                .map((item) => {
+                  const id = "pour:" + item.id,
+                    selected = state.draft.includes(id);
+                  return (
+                    <option
+                      value={id}
+                      key={id}
+                      disabled={selected || !inStock(item)}
+                    >
+                      {item.name}
+                      {selected
+                        ? " · On menu"
+                        : !inStock(item)
+                          ? " · " + item.status
+                          : ""}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          ))}
+        </select>
+      </label>
       {state.draft.map((id, index) => {
-        const r = byId(id),
-          result = availability(r, state.items);
+        const item = bottle(id),
+          r = item || byId(id),
+          result = item
+            ? { ready: inStock(item), missing: [item.name], low: [] }
+            : availability(byId(id), state.items);
         return (
           <article className="menurow curator" key={id}>
-            <MenuDrink r={r} />
+            {item ? (
+              <PourRow pour={describe(item)} />
+            ) : (
+              <MenuDrink r={byId(id)} />
+            )}
             <div className="curator-tools">
               {!result.ready && <Availability result={result} />}
               <div className="actions">
@@ -523,10 +590,7 @@ function Menu({
               if (unavailable || !state.draft.length) return;
               update({
                 ...state,
-                published: {
-                  ids: [...state.draft],
-                  title: state.title.trim() || "Menu",
-                },
+                published: publishSnapshot(state),
               });
               setNotice("Published. Copy the guest link to share.");
             }}
