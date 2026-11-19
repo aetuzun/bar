@@ -30,11 +30,14 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
   return (
     <header>
       <div className="header-inner">
-        {guest ? (
-          <span className="guest-brand" role="img" aria-label="The Home Bar — cocktail shaker and martini glass" />
-        ) : (
-          <div className="brand">The Home Bar</div>
-        )}
+        <div className="brand">
+          The Home Bar
+          {guest && (
+            <span className="guest-island" aria-hidden="true">
+              <span className="guest-pour" />
+            </span>
+          )}
+        </div>
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
@@ -725,7 +728,7 @@ function App() {
     const snapshot = guestMenu(hash);
     return (
       <>
-        <Header route="" guest />
+        <Header key={hash} route="" guest />
         <main>
           <GuestList {...snapshot} />
         </main>
