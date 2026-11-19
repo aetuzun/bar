@@ -43,7 +43,6 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
             ))}
           </nav>
         )}
-        {guest && <span className="edition">Guest menu</span>}
       </div>
     </header>
   );
@@ -54,7 +53,7 @@ const nyDate = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   year: "numeric",
 });
-function Footer() {
+function Footer({ message = "No rush." }: { message?: string }) {
   const [date, setDate] = useState(() => nyDate.format(Date.now()));
   useEffect(() => {
     const tick = () => setDate(nyDate.format(Date.now()));
@@ -68,7 +67,7 @@ function Footer() {
   return (
     <footer>
       <div className="foot-inner">
-        <strong>No rush.</strong>
+        <span>{message}</span>
         <time>{date}</time>
       </div>
     </footer>
@@ -342,7 +341,8 @@ function RecipeEntry({
           disabled={!result.ready}
           onClick={() => toggle(r.id)}
         >
-          <span aria-hidden="true">{selected ? "✓" : "+"}</span>Menu
+          <span aria-hidden="true" />
+          Menu
         </button>
       </div>
     </article>
@@ -411,6 +411,32 @@ function MenuDrink({ r }: { r: Recipe }) {
     </>
   );
 }
+function useMenuFilter(ids: string[], category: (id: string) => string) {
+  const [choice, setChoice] = useState("All");
+  const options = [...new Set(ids.map(category))];
+  const active =
+    options.length > 1 && options.includes(choice) ? choice : "All";
+  const visible =
+    active === "All" ? ids : ids.filter((id) => category(id) === active);
+  const filters =
+    options.length > 1 ? (
+      <div className="filters" role="group" aria-label="Filter menu">
+        {["All", ...options].map((f) => (
+          <button
+            key={f}
+            aria-pressed={active === f}
+            onClick={() => setChoice(f)}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+    ) : null;
+  return { visible, filters };
+}
+function pourCategory(style: Pour["style"]) {
+  return style === "Whisky" ? "Whisky pours" : "Wine";
+}
 function GuestList({
   ids,
   title,
@@ -420,13 +446,18 @@ function GuestList({
   title: string;
   pours?: Pour[];
 }) {
+  const { visible, filters } = useMenuFilter(
+    ids,
+    (id) => families[id] || pourCategory(pours[Number(id.slice(1))].style),
+  );
   return (
     <>
       <div className="pagehead">
         <h1>{title}</h1>
       </div>
+      {filters}
       <div className="guest-list">
-        {ids.map((id) => (
+        {visible.map((id) => (
           <article className="menurow" key={id}>
             {byId(id) ? (
               <MenuDrink r={byId(id)} />
@@ -451,16 +482,19 @@ function Menu({
 }) {
   const [notice, setNotice] = useState("");
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
+  const { visible, filters } = useMenuFilter(
+    state.draft,
+    (id) => families[id] || pourCategory(describe(bottle(id)!).style),
+  );
   const unavailable = state.draft.some((id) => {
     const item = bottle(id);
     return item ? !inStock(item) : !availability(byId(id), state.items).ready;
   });
   function move(index: number, offset: number) {
     const draft = [...state.draft];
-    [draft[index], draft[index + offset]] = [
-      draft[index + offset],
-      draft[index],
-    ];
+    const from = draft.indexOf(visible[index]),
+      to = draft.indexOf(visible[index + offset]);
+    [draft[from], draft[to]] = [draft[to], draft[from]];
     update({ ...state, draft });
     setNotice("");
   }
@@ -478,18 +512,58 @@ function Menu({
       <div className="pagehead">
         <h1>Menu</h1>
       </div>
-      <label className="title-field">
-        <span>Menu title</span>
-        <input
-          maxLength={80}
-          placeholder="Menu"
-          value={state.title}
-          onChange={(e) => {
-            update({ ...state, title: e.target.value });
-            setNotice("");
-          }}
-        />
-      </label>
+      {filters}{" "}
+      {visible.map((id, index) => {
+        const item = bottle(id),
+          r = item || byId(id),
+          result = item
+            ? { ready: inStock(item), missing: [item.name], low: [] }
+            : availability(byId(id), state.items);
+        return (
+          <article className="menurow curator" key={id}>
+            {item ? (
+              <PourRow pour={describe(item)} />
+            ) : (
+              <MenuDrink r={byId(id)} />
+            )}
+            <div className="curator-tools">
+              {!result.ready && <Availability result={result} />}
+              <div className="actions">
+                {[
+                  [-1, "up", "↑"],
+                  [1, "down", "↓"],
+                ].map(([offset, label, icon]) => (
+                  <button
+                    key={label}
+                    disabled={
+                      index + Number(offset) < 0 ||
+                      index + Number(offset) >= visible.length
+                    }
+                    aria-label={"Move " + r.name + " " + label}
+                    onClick={() => move(index, Number(offset))}
+                  >
+                    {icon}
+                  </button>
+                ))}
+                <button
+                  aria-label={"Remove " + r.name}
+                  onClick={() => {
+                    toggle(id);
+                    setNotice("");
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+      {!state.draft.length && (
+        <p>
+          Your selection is empty. <a href="#recipes">Browse recipes</a>
+        </p>
+      )}
       <label className="title-field pour-picker">
         <span>Whisky &amp; wine</span>
         <select
@@ -529,57 +603,29 @@ function Menu({
           ))}
         </select>
       </label>
-      {state.draft.map((id, index) => {
-        const item = bottle(id),
-          r = item || byId(id),
-          result = item
-            ? { ready: inStock(item), missing: [item.name], low: [] }
-            : availability(byId(id), state.items);
-        return (
-          <article className="menurow curator" key={id}>
-            {item ? (
-              <PourRow pour={describe(item)} />
-            ) : (
-              <MenuDrink r={byId(id)} />
-            )}
-            <div className="curator-tools">
-              {!result.ready && <Availability result={result} />}
-              <div className="actions">
-                {[
-                  [-1, "up", "↑"],
-                  [1, "down", "↓"],
-                ].map(([offset, label, icon]) => (
-                  <button
-                    key={label}
-                    disabled={
-                      index + Number(offset) < 0 ||
-                      index + Number(offset) >= state.draft.length
-                    }
-                    aria-label={"Move " + r.name + " " + label}
-                    onClick={() => move(index, Number(offset))}
-                  >
-                    {icon}
-                  </button>
-                ))}
-                <button
-                  aria-label={"Remove " + r.name}
-                  onClick={() => {
-                    toggle(id);
-                    setNotice("");
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          </article>
-        );
-      })}
-      {!state.draft.length && (
-        <p>
-          Your selection is empty. <a href="#recipes">Browse recipes</a>
-        </p>
-      )}
+      <label className="title-field">
+        <span>Menu title</span>
+        <input
+          maxLength={80}
+          placeholder="Menu"
+          value={state.title}
+          onChange={(e) => {
+            update({ ...state, title: e.target.value });
+            setNotice("");
+          }}
+        />
+      </label>
+      <label className="title-field">
+        <span>Footer message</span>
+        <input
+          maxLength={100}
+          value={state.footer}
+          onChange={(e) => {
+            update({ ...state, footer: e.target.value });
+            setNotice("");
+          }}
+        />
+      </label>
       <section className="publish">
         <h2>Guest link</h2>
         <div className="actions">
@@ -609,9 +655,6 @@ function Menu({
         )}
         <p role="status">{notice}</p>
       </section>
-      <small className="storage-note">
-        Drafts stay in this browser. Each published link shares a fixed menu.
-      </small>
     </>
   );
 }
@@ -653,7 +696,7 @@ function Manager({ route }: { route: string }) {
           <Bar state={state} update={update} />
         )}
       </main>
-      <Footer />
+      <Footer message={state.footer} />
     </>
   );
 }
@@ -667,16 +710,18 @@ function App() {
     window.addEventListener("hashchange", changed);
     return () => window.removeEventListener("hashchange", changed);
   }, []);
-  if (hash === "#guest" || hash.startsWith("#guest/"))
+  if (hash === "#guest" || hash.startsWith("#guest/")) {
+    const snapshot = guestMenu(hash);
     return (
       <>
         <Header route="" guest />
         <main>
-          <GuestList {...guestMenu(hash)} />
+          <GuestList {...snapshot} />
         </main>
-        <Footer />
+        <Footer message={snapshot.footer} />
       </>
     );
+  }
   return (
     <Manager
       route={["#recipes", "#menu"].includes(hash) ? hash.slice(1) : "bar"}

@@ -8,11 +8,17 @@ import {
   type Item,
 } from "./data";
 import { describe, pourStyles, type Pour } from "./pours";
-export type Snapshot = { ids: string[]; title: string; pours?: Pour[] };
+export type Snapshot = {
+  ids: string[];
+  title: string;
+  footer?: string;
+  pours?: Pour[];
+};
 export type BarState = {
   items: Item[];
   draft: string[];
   title: string;
+  footer: string;
   published: Snapshot | null;
 };
 const key = "the-home-bar.beta.v1";
@@ -32,7 +38,12 @@ const titleOf = (value: unknown) =>
   typeof value === "string" && value.trim()
     ? Array.from(value.trim()).slice(0, 80).join("")
     : "Menu";
-function readSnapshot(ids: unknown, title: unknown, raw: unknown): Snapshot {
+function readSnapshot(
+  ids: unknown,
+  title: unknown,
+  raw: unknown,
+  footer?: unknown,
+): Snapshot {
   const pours: Pour[] =
     Array.isArray(raw) &&
     raw.every(
@@ -50,6 +61,7 @@ function readSnapshot(ids: unknown, title: unknown, raw: unknown): Snapshot {
       pours.map((_, i) => "p" + i),
     ),
     title: titleOf(title),
+    ...(typeof footer === "string" ? { footer: footer.slice(0, 100) } : {}),
     ...(pours.length ? { pours } : {}),
   };
 }
@@ -61,7 +73,7 @@ export function publishSnapshot(state: BarState): Snapshot {
     pours.push(describe(item));
     return "p" + (pours.length - 1);
   });
-  return readSnapshot(ids, state.title, pours);
+  return readSnapshot(ids, state.title, pours, state.footer);
 }
 export function guestMenu(hash: string): Snapshot {
   if (hash === "#guest") return { ids: demoMenu, title: "Menu" };
@@ -73,13 +85,15 @@ export function guestMenu(hash: string): Snapshot {
   } catch {
     pours = [];
   }
-  return readSnapshot(ids.split(","), params.get("t"), pours);
+  return readSnapshot(ids.split(","), params.get("t"), pours, params.get("f"));
 }
 export function guestUrl(snapshot: Snapshot) {
   const url = new URL(location.href);
   url.search = "";
   const params = new URLSearchParams();
   if (snapshot.title !== "Menu") params.set("t", snapshot.title);
+  if (snapshot.footer !== undefined && snapshot.footer !== "No rush.")
+    params.set("f", snapshot.footer);
   if (snapshot.pours?.length) params.set("p", JSON.stringify(snapshot.pours));
   url.hash =
     "guest/" + snapshot.ids.join(",") + (params.size ? "?" + params : "");
@@ -114,6 +128,7 @@ export const storage = {
           ).ready,
       ),
       title: "Menu",
+      footer: "No rush.",
       published: null,
     };
     try {
@@ -128,6 +143,7 @@ export const storage = {
               data.published.ids,
               data.published.title,
               data.published.pours,
+              data.published.footer,
             )
           : null;
       return {
@@ -140,6 +156,7 @@ export const storage = {
           data.items.map((i: Item) => "pour:" + i.id),
         ),
         title: typeof data.title === "string" ? data.title : "Menu",
+        footer: typeof data.footer === "string" ? data.footer : "No rush.",
         published,
       };
     } catch {

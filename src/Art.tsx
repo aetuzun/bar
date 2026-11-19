@@ -1,4 +1,4 @@
-import { recipes, type Recipe } from "./data";
+import { type Recipe } from "./data";
 export function Illustration({ id }: { id: string }) {
   return (
     <img
@@ -9,13 +9,5 @@ export function Illustration({ id }: { id: string }) {
   );
 }
 export function Glass({ recipe }: { recipe: Recipe }) {
-  return (
-    <>
-      <span className="plate-caption" aria-hidden="true">
-        <span>{recipe.name}</span>
-        <span>#{String(recipes.indexOf(recipe) + 1).padStart(2, "0")}</span>
-      </span>
-      <Illustration id={recipe.id} />
-    </>
-  );
+  return <Illustration id={recipe.id} />;
 }

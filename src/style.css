@@ -1,4 +1,6 @@
 :root {
+  --indicator: 14px;
+  --nav-size: 1.06rem;
   --paper: #f7f5f0;
   --ink: #111;
   --muted: #5e5b55;
@@ -97,7 +99,7 @@ nav a,
   position: relative;
 }
 nav a {
-  font-size: 1.06rem;
+  font-size: var(--nav-size);
 }
 nav a[aria-current],
 .filters button[aria-pressed="true"] {
@@ -168,8 +170,8 @@ nav a[aria-current]:after,
 }
 .dotted:before {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: var(--indicator);
+  height: var(--indicator);
   border-radius: 50%;
   background: var(--dot);
   flex: none;
@@ -326,20 +328,20 @@ dialog h2 {
   min-height: 44px;
 }
 .menu-toggle span {
-  width: 22px;
-  height: 22px;
+  width: var(--indicator);
+  height: var(--indicator);
   border: 1px solid;
   border-radius: 50%;
   display: grid;
   place-items: center;
   line-height: 1;
 }
-.menu-toggle[aria-pressed="true"] span {
+.menu-toggle[aria-pressed="true"]:enabled span {
   background: var(--ink);
-  color: white;
+  border-color: var(--ink);
 }
 .menu-toggle:disabled span {
-  border-color: #bbb;
+  border: 1.5px dashed #64635e;
   background: transparent;
   color: #888;
 }
@@ -370,9 +372,10 @@ dialog h2 {
 .curator .actions button {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  font-size: 1.22rem;
+  border: 0;
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
 }
 .curator .actions button:disabled {
   color: #aaa8a0;
@@ -441,14 +444,15 @@ footer {
   gap: 16px;
   min-height: 86px;
 }
-.foot-inner strong {
-  font-size: 1.5rem;
-  letter-spacing: -0.055em;
+.foot-inner {
+  font-size: var(--nav-size);
+  font-weight: 400;
+}
+.foot-inner span {
+  overflow-wrap: anywhere;
 }
 .foot-inner time {
-  border-left: 2px solid #ab94d7;
-  padding-left: 12px;
-  font-size: 0.85rem;
+  flex: none;
 }
 .edition {
   color: var(--muted);
@@ -514,8 +518,8 @@ dialog .actions {
   nav {
     gap: 16px;
   }
-  nav a {
-    font-size: 0.96rem;
+  :root {
+    --nav-size: 0.96rem;
   }
   .pagehead {
     padding: 26px 0 17px;
@@ -586,9 +590,6 @@ dialog .actions {
   .foot-inner {
     min-height: 70px;
   }
-  .foot-inner time {
-    font-size: 0.78rem;
-  }
 }
 
 .pour-picker select {
@@ -606,28 +607,6 @@ dialog .actions {
   border-top: 0;
 }
 
-.plate-caption {
-  display: none;
-}
-.recipe .plate-caption {
-  position: absolute;
-  inset: 12px 14px auto;
-  display: flex;
-  justify-content: space-between;
-  font:
-    0.83rem/1.25 Georgia,
-    serif;
-  color: #3d3935;
-}
-.recipe .glass {
-  padding: 26px 6px 6px;
-}
-.recipe-heading h2,
-.menurow h2 {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: normal;
-  letter-spacing: -0.045em;
-}
 .measures .label-row,
 .method h3,
 .ingredients li span:last-child {
@@ -636,4 +615,44 @@ dialog .actions {
 .ingredients li {
   border-bottom-style: dotted;
 }
-.drink-art {grid-template: minmax(0,1fr) / minmax(0,1fr)} .glass {min-height:0;min-width:0}
+.drink-art {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+.glass {
+  min-height: 0;
+  min-width: 0;
+}
+
+.recipe,
+.menurow {
+  background: #f1efec;
+  border: 0;
+  border-radius: 6px;
+  padding: clamp(14px, 2vw, 26px);
+  margin: 16px 0;
+}
+.recipe .drink-art,
+.menurow .drink-art {
+  background: transparent;
+}
+.recipe-heading h2,
+.menurow h2 {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+}
+.guest-list {
+  border: 0;
+}
+.menu-toggle:disabled span {
+  background: transparent;
+}
+.menu-toggle span {
+  border-width: 1.5px;
+}
+.curator .actions {
+  gap: 0;
+}
+.title-field:first-of-type {
+  margin-top: 24px;
+}
