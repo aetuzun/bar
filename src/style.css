@@ -219,9 +219,12 @@ nav a[aria-current]:after,
   align-items: start;
 }
 .drink-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: 5px;
   display: grid;
   place-items: center;
-  background: var(--plate);
+  background: #f1efec;
 }
 .recipe .drink-art {
   grid-area: art;
@@ -232,7 +235,8 @@ nav a[aria-current]:after,
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 270px;
+  object-fit: contain;
+  max-height: 360px;
 }
 .recipe-heading {
   grid-area: head;
@@ -542,7 +546,7 @@ dialog .actions {
     padding: 18px 0 14px;
   }
   .recipe .drink-art {
-    height: clamp(156px, 44vw, 210px);
+    height: clamp(222px, 60vw, 265px);
     min-height: 0;
   }
   .recipe-heading {
@@ -601,3 +605,35 @@ dialog .actions {
 .pour-picker {
   border-top: 0;
 }
+
+.plate-caption {
+  display: none;
+}
+.recipe .plate-caption {
+  position: absolute;
+  inset: 12px 14px auto;
+  display: flex;
+  justify-content: space-between;
+  font:
+    0.83rem/1.25 Georgia,
+    serif;
+  color: #3d3935;
+}
+.recipe .glass {
+  padding: 26px 6px 6px;
+}
+.recipe-heading h2,
+.menurow h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: normal;
+  letter-spacing: -0.045em;
+}
+.measures .label-row,
+.method h3,
+.ingredients li span:last-child {
+  font-family: ui-monospace, "Courier New", monospace;
+}
+.ingredients li {
+  border-bottom-style: dotted;
+}
+.drink-art {grid-template: minmax(0,1fr) / minmax(0,1fr)} .glass {min-height:0;min-width:0}
