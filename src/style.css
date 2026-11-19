@@ -87,6 +87,23 @@ nav,
   font-weight: 700;
   letter-spacing: -0.065em;
 }
+.guest-brand {
+  display: block;
+  width: 128px;
+  height: 48px;
+  border-radius: 24px;
+  background: #10110f url("./guest-shaker.png") right center / 3200% 100% no-repeat;
+  image-rendering: pixelated;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .guest-brand {
+    animation: guest-pour 3.72s steps(31, end) both;
+  }
+}
+@keyframes guest-pour {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
 nav {
   gap: clamp(15px, 3.5vw, 46px);
 }

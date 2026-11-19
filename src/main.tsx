@@ -30,7 +30,11 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
   return (
     <header>
       <div className="header-inner">
-        <div className="brand">The Home Bar</div>
+        {guest ? (
+          <span className="guest-brand" role="img" aria-label="The Home Bar — cocktail shaker and martini glass" />
+        ) : (
+          <div className="brand">The Home Bar</div>
+        )}
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
