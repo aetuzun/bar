@@ -14,6 +14,7 @@ import {
 import { describe, eligible, inStock, PourRow, type Pour } from "./pours";
 import {
   publishSnapshot,
+  defaultFooter,
   guestMenu,
   guestUrl,
   storage,
@@ -53,7 +54,7 @@ const nyDate = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   year: "numeric",
 });
-function Footer({ message = "No rush." }: { message?: string }) {
+function Footer({ message = defaultFooter }: { message?: string }) {
   const [date, setDate] = useState(() => nyDate.format(Date.now()));
   useEffect(() => {
     const tick = () => setDate(nyDate.format(Date.now()));

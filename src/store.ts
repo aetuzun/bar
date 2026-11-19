@@ -22,6 +22,7 @@ export type BarState = {
   published: Snapshot | null;
 };
 const key = "the-home-bar.beta.v1";
+export const defaultFooter = "Enjoy!";
 const validIds = (value: unknown, extra: string[] = []): string[] =>
   Array.isArray(value)
     ? [
@@ -92,7 +93,7 @@ export function guestUrl(snapshot: Snapshot) {
   url.search = "";
   const params = new URLSearchParams();
   if (snapshot.title !== "Menu") params.set("t", snapshot.title);
-  if (snapshot.footer !== undefined && snapshot.footer !== "No rush.")
+  if (snapshot.footer !== undefined)
     params.set("f", snapshot.footer);
   if (snapshot.pours?.length) params.set("p", JSON.stringify(snapshot.pours));
   url.hash =
@@ -128,7 +129,7 @@ export const storage = {
           ).ready,
       ),
       title: "Menu",
-      footer: "No rush.",
+      footer: defaultFooter,
       published: null,
     };
     try {
@@ -156,7 +157,11 @@ export const storage = {
           data.items.map((i: Item) => "pour:" + i.id),
         ),
         title: typeof data.title === "string" ? data.title : "Menu",
-        footer: typeof data.footer === "string" ? data.footer : "No rush.",
+        footer:
+          typeof data.footer !== "string" ||
+          (!data.footerVersion && data.footer === "No rush.")
+            ? defaultFooter
+            : data.footer,
         published,
       };
     } catch {
@@ -164,6 +169,6 @@ export const storage = {
     }
   },
   save(state: BarState) {
-    localStorage.setItem(key, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify({ ...state, footerVersion: 2 }));
   },
 };
