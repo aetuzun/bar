@@ -27,8 +27,23 @@ const byId = (id: string) => recipes.find((r) => r.id === id)!;
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
 function Header({ route, guest = false }: { route: string; guest?: boolean }) {
+  const [intro, setIntro] = useState(() => guest && !matchMedia("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    if (!intro) return;
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const original = theme?.content;
+    if (theme) theme.content = "#10110f";
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    const stop = () => setIntro(false);
+    motion.addEventListener("change", stop);
+    if (motion.matches) stop();
+    return () => {
+      motion.removeEventListener("change", stop);
+      if (theme && original !== undefined) theme.content = original;
+    };
+  }, [intro]);
   return (
-    <header className={guest ? "guest-header" : undefined}>
+    <header className={intro ? "guest-header" : undefined}>
       <div className="header-inner">
         <div className="brand">The Home Bar</div>
         {!guest && (
@@ -45,10 +60,12 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
           </nav>
         )}
       </div>
-      {guest && (
-        <span className="guest-island" aria-hidden="true">
+      {intro && (
+        <button type="button" className="guest-island" aria-label="Dismiss cocktail animation"
+          onClick={() => setIntro(false)}
+          onAnimationEnd={(event) => { if (event.animationName === "guest-island") setIntro(false); }}>
           <span className="guest-pour" />
-        </span>
+        </button>
       )}
     </header>
   );

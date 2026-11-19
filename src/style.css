@@ -28,7 +28,10 @@ ol {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
 }
+header { padding-top: env(safe-area-inset-top); }
+footer { padding-bottom: env(safe-area-inset-bottom); }
 main,
 .header-inner,
 .foot-inner {
@@ -93,37 +96,37 @@ nav,
   .guest-island {
     position: fixed;
     z-index: 5;
-    top: max(8px, env(safe-area-inset-top));
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     display: grid;
     place-content: center;
     overflow: hidden;
-    --open-width: min(90vw, 370px);
+    --open-width: min(100vw, 480px);
     box-shadow: 0 5px 16px rgb(0 0 0 / 14%);
     background: #10110f;
-    pointer-events: none;
-    animation: guest-island 5s cubic-bezier(.22,.8,.22,1) both;
+    animation: guest-island 9s cubic-bezier(.22,.8,.22,1) both;
   }
   .guest-pour {
-    width: 192px;
-    height: 72px;
+    width: 256px;
+    height: 96px;
+    transform: translateY(calc(env(safe-area-inset-top) / 2));
     background: url("./guest-shaker.png") left center / 3200% 100% no-repeat;
     image-rendering: pixelated;
-    animation: guest-pour 1.8s .85s 2 both, guest-reveal 5s both;
+    animation: guest-pour 3.2s 1.08s 2 both, guest-reveal 9s both;
   }
-  .guest-header .brand { animation: guest-title 5s both; }
+  .guest-header .brand { animation: guest-title 9s both; }
 }
 @keyframes guest-island {
   0%, 6%, 98%, 100% { width: 106px; height: 29px; border-radius: 18px; }
   0%, 100% { opacity: 0; }
   3%, 96% { opacity: 1; }
-  17%, 89% { width: var(--open-width); height: 86px; border-radius: 32px; }
+  12%, 91% { width: var(--open-width); height: calc(124px + env(safe-area-inset-top)); border-radius: 0 0 32px 32px; }
   100% { visibility: hidden; }
 }
 @keyframes guest-reveal {
-  0%, 13%, 94%, 100% { opacity: 0; }
-  17%, 89% { opacity: 1; }
+  0%, 8%, 96%, 100% { opacity: 0; }
+  12%, 91% { opacity: 1; }
 }
 @keyframes guest-title {
   0%, 94% { opacity: 0; }
