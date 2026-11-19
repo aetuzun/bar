@@ -30,17 +30,11 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
   const [intro, setIntro] = useState(() => guest && !matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
     if (!intro) return;
-    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    const original = theme?.content;
-    if (theme) theme.content = "#10110f";
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     const stop = () => setIntro(false);
     motion.addEventListener("change", stop);
     if (motion.matches) stop();
-    return () => {
-      motion.removeEventListener("change", stop);
-      if (theme && original !== undefined) theme.content = original;
-    };
+    return () => motion.removeEventListener("change", stop);
   }, [intro]);
   return (
     <header className={intro ? "guest-header" : undefined}>
@@ -61,10 +55,20 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
         )}
       </div>
       {intro && (
-        <button type="button" className="guest-island" aria-label="Dismiss cocktail animation"
+        <button
+          type="button"
+          className="guest-island"
+          data-iphone={/\biPhone\b/.test(navigator.userAgent) || undefined}
+          aria-label="Dismiss cocktail animation"
           onClick={() => setIntro(false)}
-          onAnimationEnd={(event) => { if (event.animationName === "guest-island") setIntro(false); }}>
-          <span className="guest-pour" />
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
+          }}
+        >
+          <svg className="island-crown" viewBox="0 0 360 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <path d="M0 64C0 47 18 40 42 33C70 25 85 15 102 8C116 2 126 0 139 0H221C234 0 244 2 258 8C275 15 290 25 318 33C342 40 360 47 360 64Z" />
+          </svg>
+          <span className="guest-pour" aria-hidden="true" />
         </button>
       )}
     </header>

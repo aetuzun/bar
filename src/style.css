@@ -93,44 +93,99 @@ nav,
 }
 .guest-island { display: none; }
 @media (prefers-reduced-motion: no-preference) {
+  .guest-header, .guest-header + main {
+    --intro-duration: 10s;
+  }
   .guest-island {
+    --cap-width: 124px;
+    --cap-height: 36px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --cap-top: clamp(9px, calc((var(--safe-top) - var(--cap-height)) / 2), 14px);
+    --origin-top: var(--cap-top);
+    --tray-top: max(var(--cap-height), calc(var(--safe-top) - var(--origin-top)));
+    --gutter: max(18px, 5vw, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --open-width: min(416px, calc(100vw - 2 * var(--gutter)));
+    --open-height: calc(var(--tray-top) + 120px);
     position: fixed;
     z-index: 5;
-    top: 0;
+    top: var(--origin-top);
     left: 50%;
     transform: translateX(-50%);
     display: grid;
-    place-content: center;
+    grid-template-columns: minmax(0, 1fr);
     overflow: hidden;
-    --open-width: min(100vw, 480px);
-    box-shadow: 0 5px 16px rgb(0 0 0 / 14%);
-    background: #10110f;
-    animation: guest-island 9s cubic-bezier(.22,.8,.22,1) both;
+    border-radius: 18px;
+    pointer-events: none;
+    animation: guest-island var(--intro-duration) cubic-bezier(.42,0,.2,1) both;
   }
+  .guest-island::before {
+    content: "";
+    grid-area: 2 / 1;
+    background: #000;
+    pointer-events: auto;
+  }
+  /* Sweep the shoulders out below the clock and battery. */
+  .island-crown {
+    grid-area: 1 / 1;
+    align-self: start;
+    width: 100%;
+    height: calc(100% + 1px);
+    fill: #000;
+  }
+  .island-crown path { pointer-events: visiblePainted; }
   .guest-pour {
-    width: 256px;
-    height: 96px;
-    transform: translateY(calc(env(safe-area-inset-top) / 2));
+    position: absolute;
+    top: calc(var(--tray-top) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(256px, var(--open-width));
+    aspect-ratio: 8 / 3;
     background: url("./guest-shaker.png") left center / 3200% 100% no-repeat;
     image-rendering: pixelated;
-    animation: guest-pour 3.2s 1.08s 2 both, guest-reveal 9s both;
+    animation: guest-reveal var(--intro-duration) both,
+      guest-pour calc(var(--intro-duration) * .32) calc(var(--intro-duration) * .22) 2 both;
   }
-  .guest-header .brand { animation: guest-title 9s both; }
+  .guest-header .header-inner { border-color: transparent; }
+  .guest-header .brand { animation: guest-title var(--intro-duration) both; }
+}
+@media (display-mode: browser) and (pointer: coarse) and (orientation: portrait) {
+  .guest-island[data-iphone] {
+    /* If the iPhone browser owns the status row, emerge from its lower edge. */
+    --origin-top: min(var(--cap-top), calc(var(--safe-top) - 30px));
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 650px) {
+  .guest-header + main .pagehead {
+    animation: guest-heading var(--intro-duration) both;
+  }
 }
 @keyframes guest-island {
-  0%, 6%, 98%, 100% { width: 106px; height: 29px; border-radius: 18px; }
-  0%, 100% { opacity: 0; }
-  3%, 96% { opacity: 1; }
-  12%, 91% { width: var(--open-width); height: calc(124px + env(safe-area-inset-top)); border-radius: 0 0 32px 32px; }
-  100% { visibility: hidden; }
+  0%, 10%, 98%, 100% {
+    width: var(--cap-width);
+    height: var(--cap-height);
+    grid-template-rows: 0px 1fr;
+    border-radius: 18px;
+  }
+  20%, 91% {
+    width: var(--open-width);
+    height: var(--open-height);
+    grid-template-rows: calc(var(--tray-top) + 16px) 1fr;
+    border-radius: 18px 18px 32px 32px;
+  }
+  0%, 98% { opacity: 1; }
+  100% { opacity: 0; }
 }
 @keyframes guest-reveal {
-  0%, 8%, 96%, 100% { opacity: 0; }
-  12%, 91% { opacity: 1; }
+  0%, 20%, 90%, 100% { opacity: 0; }
+  22%, 88% { opacity: 1; }
 }
 @keyframes guest-title {
-  0%, 94% { opacity: 0; }
+  0%, 98% { opacity: 0; }
   100% { opacity: 1; }
+}
+@keyframes guest-heading {
+  0%, 10%, 98%, 100% { opacity: 1; }
+  14%, 93% { opacity: 0; }
 }
 @keyframes guest-pour {
   from { background-position-x: 0%; animation-timing-function: steps(31, end); }
