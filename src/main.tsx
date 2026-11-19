@@ -631,7 +631,7 @@ function Menu({
         <h2>Guest link</h2>
         <div className="actions">
           <button
-            className="solid"
+            className="menu-toggle"
             disabled={unavailable || !state.draft.length}
             onClick={() => {
               if (unavailable || !state.draft.length) return;
@@ -642,9 +642,15 @@ function Menu({
               setNotice("Published. Copy the guest link to share.");
             }}
           >
+            <span aria-hidden="true" />
             Publish
           </button>
-          <button disabled={!state.published} onClick={copy}>
+          <button
+            className="menu-toggle"
+            disabled={!state.published}
+            onClick={copy}
+          >
+            <span aria-hidden="true" />
             Copy guest link
           </button>
         </div>
