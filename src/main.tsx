@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   availability,
+  measure,
   families,
   groups,
   recipes,
@@ -10,7 +11,7 @@ import {
   type Item,
   type Recipe,
 } from "./data";
-import { guestIds, guestUrl, storage, type BarState } from "./store";
+import { guestMenu, guestUrl, storage, type BarState } from "./store";
 import { Glass } from "./Art";
 import "./style.css";
 
@@ -40,15 +41,29 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
     </header>
   );
 }
-function Footer({ guest = false }: { guest?: boolean }) {
+const nyDate = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+function Footer() {
+  const [date, setDate] = useState(() => nyDate.format(Date.now()));
+  useEffect(() => {
+    const tick = () => setDate(nyDate.format(Date.now()));
+    const timer = setInterval(tick, 30000);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
   return (
     <footer>
-      <span>The Home Bar</span>
-      <span>
-        {guest
-          ? "Guest edition"
-          : "Saved in this browser only. Changes do not sync between devices."}
-      </span>
+      <div className="foot-inner">
+        <strong>No rush.</strong>
+        <time>{date}</time>
+      </div>
     </footer>
   );
 }
@@ -70,7 +85,11 @@ function Editor({
     setForm({ ...form, [key]: value });
   }
   return (
-    <dialog ref={dialog} onCancel={close}>
+    <dialog
+      aria-label={item.name ? "Edit item" : "Add item"}
+      ref={dialog}
+      onCancel={close}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -128,6 +147,9 @@ function Editor({
             ))}
           </select>
         </label>
+        <small className="storage-note">
+          Inventory is saved only in this browser.
+        </small>
         <div className="actions">
           <button type="button" onClick={close}>
             Cancel
@@ -151,10 +173,6 @@ function Bar({
     <>
       <div className="pagehead">
         <h1>Bar</h1>
-        <p>
-          Update the bottles at home and the recipes page responds
-          automatically.
-        </p>
       </div>
       <section className="inventory">
         <div className="filters">
@@ -164,7 +182,7 @@ function Bar({
               aria-pressed={filter === g}
               onClick={() => setFilter(g)}
             >
-              {g === "Liqueurs/Aperitifs" ? "Liqueurs & Aperitifs" : g}
+              {g}
             </button>
           ))}
         </div>
@@ -188,11 +206,13 @@ function Bar({
                     <button
                       className="stockrow"
                       key={i.id}
-                      aria-label={"Edit " + i.name}
+                      aria-label={"Edit " + i.name + ", " + i.status}
                       onClick={() => setEdit(i)}
                     >
                       <span>{i.name}</span>
-                      <span className="status">{i.status}</span>
+                      <span className={"status dotted " + slug(i.status)}>
+                        {i.status}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -233,62 +253,90 @@ function Bar({
     </>
   );
 }
+function Availability({
+  result,
+  id,
+}: {
+  result: ReturnType<typeof availability>;
+  id?: string;
+}) {
+  const { ready, missing, low } = result;
+  return (
+    <p
+      id={id}
+      className={
+        "availability dotted " +
+        (ready ? "available" : missing.length === 1 ? "low" : "unavailable")
+      }
+    >
+      {ready
+        ? "Ready now" + (low.length ? " · Low on " + low.join(", ") : "")
+        : "Missing " + missing.join(", ")}
+    </p>
+  );
+}
 function RecipeEntry({
   r,
   state,
   toggle,
 }: {
   r: Recipe;
-  state?: BarState;
-  toggle?: (id: string) => void;
+  state: BarState;
+  toggle: (id: string) => void;
 }) {
-  const a = state && availability(r, state.items);
+  const result = availability(r, state.items),
+    selected = state.draft.includes(r.id);
   return (
     <article className="recipe">
       <div className="drink-art">
         <Glass recipe={r} />
       </div>
-      <div>
+      <div className="recipe-heading">
         <h2>{r.name}</h2>
         <p className="flavor">{r.style}</p>
-        <div className="details">
-          <div>
-            <h4>Serves 1</h4>
-            <h4>Ingredients</h4>
-            <ul className="ingredients">
-              {r.ingredients.map(([name, q]) => (
-                <li key={name}>
-                  <span>{name}</span>
-                  <span>{q}</span>
-                </li>
-              ))}
-            </ul>
-            <h4>Garnish</h4>
-            <p>{r.garnish}</p>
-          </div>
-          <div>
-            <h4>Method</h4>
-            <ol>
-              {r.steps.split(". ").map((step) => (
-                <li key={step}>{step.replace(/\.$/, "")}.</li>
-              ))}
-            </ol>
-            {a && (
-              <strong
-                className={"availability " + (a.ready ? "ready" : "missing")}
-              >
-                {a.ready
-                  ? "Ready now" + (a.low.length ? " · Low stock" : "")
-                  : "Missing " + a.missing.join(", ")}
-              </strong>
-            )}
-          </div>
+      </div>
+      <section className="measures">
+        <div className="label-row">
+          <h3>Ingredients</h3>
+          <span>Serves 1</span>
         </div>
-        {toggle && (
-          <button className="text-action" onClick={() => toggle(r.id)}>
-            {state?.draft.includes(r.id) ? "Remove from menu" : "Add to menu"}
-          </button>
-        )}
+        <ul className="ingredients">
+          {r.ingredients.map(([kind, amount, unit]) => (
+            <li key={kind}>
+              <span>{kind}</span>
+              <span>{measure(amount, unit)}</span>
+            </li>
+          ))}
+          <li>
+            <span>Ice</span>
+            <span>As needed</span>
+          </li>
+        </ul>
+      </section>
+      <section className="method">
+        <h3>Method</h3>
+        <ol>
+          {r.steps.split(". ").map((step) => (
+            <li key={step}>{step.replace(/\.$/, "")}.</li>
+          ))}
+        </ol>
+        <div className="garnish">
+          <h3>Garnish</h3>
+          <p>{r.garnish}</p>
+        </div>
+      </section>
+      <div className="recipe-tools">
+        <Availability id={"stock-" + r.id} result={result} />
+        <button
+          className="menu-toggle"
+          aria-pressed={selected}
+          aria-label={"Menu, " + r.name}
+          aria-describedby={"stock-" + r.id}
+          disabled={!result.ready}
+          onClick={() => toggle(r.id)}
+        >
+          <span aria-hidden="true">{selected ? "✓" : "+"}</span>Menu
+        </button>
       </div>
     </article>
   );
@@ -356,32 +404,19 @@ function MenuDrink({ r }: { r: Recipe }) {
     </>
   );
 }
-function GuestList({ ids }: { ids: string[] }) {
-  const [filter, setFilter] = useState("All");
+function GuestList({ ids, title }: { ids: string[]; title: string }) {
   return (
     <>
       <div className="pagehead">
-        <h1>Menu</h1>
-        <p>Tonight at The Home Bar</p>
+        <h1>{title}</h1>
       </div>
-      <div className="filters">
-        {["All", ...new Set(ids.map((id) => families[id]))].map((f) => (
-          <button
-            key={f}
-            aria-pressed={f === filter}
-            onClick={() => setFilter(f)}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-      {ids
-        .filter((id) => filter === "All" || families[id] === filter)
-        .map((id) => (
+      <div className="guest-list">
+        {ids.map((id) => (
           <article className="menurow" key={id}>
             <MenuDrink r={byId(id)} />
           </article>
         ))}
+      </div>
       {!ids.length && <p>No cocktails on this menu.</p>}
     </>
   );
@@ -395,8 +430,10 @@ function Menu({
   update: (s: BarState) => void;
   toggle: (id: string) => void;
 }) {
-  const [preview, setPreview] = useState(false);
   const [notice, setNotice] = useState("");
+  const unavailable = state.draft.some(
+    (id) => !availability(byId(id), state.items).ready,
+  );
   function move(index: number, offset: number) {
     const draft = [...state.draft];
     [draft[index], draft[index + offset]] = [
@@ -404,101 +441,113 @@ function Menu({
       draft[index],
     ];
     update({ ...state, draft });
+    setNotice("");
   }
-  return preview ? (
-    <>
-      <button className="back" onClick={() => setPreview(false)}>
-        Close preview
-      </button>
-      <GuestList ids={state.draft} />
-    </>
-  ) : (
+  async function copy() {
+    if (!state.published) return;
+    try {
+      await navigator.clipboard.writeText(guestUrl(state.published));
+      setNotice("Guest link copied.");
+    } catch {
+      setNotice("Copy failed. Allow clipboard access and try again.");
+    }
+  }
+  return (
     <>
       <div className="pagehead">
         <h1>Menu</h1>
-        <p>Tonight at The Home Bar</p>
       </div>
-      <div className="sectionhead">
-        <h2>Draft selection</h2>
-        <button onClick={() => setPreview(true)}>Preview menu</button>
-      </div>
-      {state.draft.map((id, index) => (
-        <div className="menurow" key={id}>
-          <MenuDrink r={byId(id)} />
-          <div className="actions">
-            <button
-              disabled={!index}
-              aria-label={"Move " + byId(id).name + " up"}
-              onClick={() => move(index, -1)}
-            >
-              Up
-            </button>
-            <button
-              disabled={index === state.draft.length - 1}
-              aria-label={"Move " + byId(id).name + " down"}
-              onClick={() => move(index, 1)}
-            >
-              Down
-            </button>
-            <button
-              onClick={() => toggle(id)}
-              aria-label={"Remove " + byId(id).name}
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      ))}
+      <label className="title-field">
+        <span>Menu title</span>
+        <input
+          maxLength={80}
+          placeholder="Menu"
+          value={state.title}
+          onChange={(e) => {
+            update({ ...state, title: e.target.value });
+            setNotice("");
+          }}
+        />
+      </label>
+      {state.draft.map((id, index) => {
+        const r = byId(id),
+          result = availability(r, state.items);
+        return (
+          <article className="menurow curator" key={id}>
+            <MenuDrink r={r} />
+            <div className="curator-tools">
+              {!result.ready && <Availability result={result} />}
+              <div className="actions">
+                {[
+                  [-1, "up", "↑"],
+                  [1, "down", "↓"],
+                ].map(([offset, label, icon]) => (
+                  <button
+                    key={label}
+                    disabled={
+                      index + Number(offset) < 0 ||
+                      index + Number(offset) >= state.draft.length
+                    }
+                    aria-label={"Move " + r.name + " " + label}
+                    onClick={() => move(index, Number(offset))}
+                  >
+                    {icon}
+                  </button>
+                ))}
+                <button
+                  aria-label={"Remove " + r.name}
+                  onClick={() => {
+                    toggle(id);
+                    setNotice("");
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
       {!state.draft.length && (
         <p>
           Your selection is empty. <a href="#recipes">Browse recipes</a>
         </p>
       )}
-      <div className="publish">
+      <section className="publish">
         <h2>Guest link</h2>
-        <p>
-          Publish a snapshot of this selection. Earlier links keep their
-          original order and recipes.
-        </p>
-        <button
-          className="solid"
-          onClick={() => {
-            update({ ...state, published: [...state.draft] });
-            setNotice("Guest link published.");
-          }}
-        >
-          Publish menu
-        </button>{" "}
-        {state.published && (
-          <>
-            <a
-              href={guestUrl(state.published)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open published menu
-            </a>{" "}
-            <button
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(
-                    guestUrl(state.published!),
-                  );
-                  setNotice("Guest link copied.");
-                } catch {
-                  setNotice("Copy the address from Open published menu.");
-                }
-              }}
-            >
-              Copy link
-            </button>
-          </>
+        <div className="actions">
+          <button
+            className="solid"
+            disabled={unavailable || !state.draft.length}
+            onClick={() => {
+              if (unavailable || !state.draft.length) return;
+              update({
+                ...state,
+                published: {
+                  ids: [...state.draft],
+                  title: state.title.trim() || "Menu",
+                },
+              });
+              setNotice("Published. Copy the guest link to share.");
+            }}
+          >
+            Publish
+          </button>
+          <button disabled={!state.published} onClick={copy}>
+            Copy guest link
+          </button>
+        </div>
+        {unavailable && (
+          <p className="feedback">
+            Confirm missing ingredients in Bar or remove unavailable drinks to
+            publish.
+          </p>
         )}
         <p role="status">{notice}</p>
-        <a href="#guest" target="_blank" rel="noreferrer">
-          View public demo menu
-        </a>
-      </div>
+      </section>
+      <small className="storage-note">
+        Drafts stay in this browser. Each published link shares a fixed menu.
+      </small>
     </>
   );
 }
@@ -559,9 +608,9 @@ function App() {
       <>
         <Header route="" guest />
         <main>
-          <GuestList ids={guestIds(hash)} />
+          <GuestList {...guestMenu(hash)} />
         </main>
-        <Footer guest />
+        <Footer />
       </>
     );
   return (

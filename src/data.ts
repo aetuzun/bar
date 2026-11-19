@@ -1,10 +1,12 @@
 export const groups = [
   "Whiskies",
   "Spirits",
-  "Liqueurs/Aperitifs",
-  "Vermouth",
-  "Non-alcoholic",
-  "Additional",
+  "Aperitifs & liqueurs",
+  "Vermouth & fortified wine",
+  "Wine & sparkling",
+  "Mixers",
+  "Bitters & syrups",
+  "Fresh & garnishes",
 ] as const;
 export type Group = (typeof groups)[number];
 export const statuses = [
@@ -46,50 +48,60 @@ export const seed: Item[] = [
     "Needs confirmation",
   ),
   bottle("bombay", "Bombay Sapphire", "Spirits", "Gin"),
-  bottle("campari", "Campari", "Liqueurs/Aperitifs", "Campari"),
-  bottle("aperol", "Aperol", "Liqueurs/Aperitifs", "Aperol"),
-  bottle("germain", "St-Germain", "Liqueurs/Aperitifs", "Elderflower liqueur"),
-  bottle("cocchi", "Cocchi sweet vermouth", "Vermouth", "Sweet vermouth"),
-  bottle("dolin", "Dolin Dry", "Vermouth", "Dry vermouth"),
+  bottle("campari", "Campari", "Aperitifs & liqueurs", "Campari"),
+  bottle("aperol", "Aperol", "Aperitifs & liqueurs", "Aperol"),
   bottle(
-    "soda",
-    "Soda water",
-    "Non-alcoholic",
-    "Soda water",
-    "Needs confirmation",
+    "germain",
+    "St-Germain",
+    "Aperitifs & liqueurs",
+    "Elderflower liqueur",
   ),
-  bottle("mint", "Mint", "Additional", "Mint", "Needs confirmation"),
-  bottle("lime", "Limes", "Additional", "Lime", "Needs confirmation"),
+  bottle(
+    "cocchi",
+    "Cocchi sweet vermouth",
+    "Vermouth & fortified wine",
+    "Sweet vermouth",
+  ),
+  bottle("dolin", "Dolin Dry", "Vermouth & fortified wine", "Dry vermouth"),
+  bottle("soda", "Soda water", "Mixers", "Soda water", "Needs confirmation"),
+  bottle("mint", "Mint", "Fresh & garnishes", "Mint", "Needs confirmation"),
+  bottle("lime", "Limes", "Fresh & garnishes", "Lime", "Needs confirmation"),
   bottle(
     "syrup",
     "Simple syrup",
-    "Additional",
+    "Bitters & syrups",
     "Simple syrup",
     "Needs confirmation",
   ),
   bottle(
     "bitters",
     "Angostura bitters",
-    "Additional",
+    "Bitters & syrups",
     "Angostura bitters",
     "Needs confirmation",
   ),
   bottle(
     "prosecco",
     "Prosecco",
-    "Additional",
+    "Wine & sparkling",
     "Prosecco",
     "Needs confirmation",
   ),
-  bottle("ice", "Ice", "Additional", "Ice"),
-  bottle("suze", "Suze", "Liqueurs/Aperitifs", "Gentian liqueur", "Planned"),
-  bottle("lillet", "Lillet Blanc", "Vermouth", "Aromatized wine", "Planned"),
+  bottle("ice", "Ice", "Fresh & garnishes", "Ice"),
+  bottle("suze", "Suze", "Aperitifs & liqueurs", "Gentian liqueur", "Planned"),
+  bottle(
+    "lillet",
+    "Lillet Blanc",
+    "Vermouth & fortified wine",
+    "Aromatized wine",
+    "Planned",
+  ),
   bottle("espolon", "Espolòn Blanco", "Spirits", "Tequila", "Planned"),
   bottle("del", "Del Maguey Vida", "Spirits", "Mezcal", "Planned"),
   bottle(
     "cointreau",
     "Cointreau",
-    "Liqueurs/Aperitifs",
+    "Aperitifs & liqueurs",
     "Orange liqueur",
     "Planned",
   ),
@@ -100,7 +112,11 @@ export type Recipe = {
   style: string;
   glass: string;
   color: string;
-  ingredients: [string, string][];
+  ingredients: [
+    kind: string,
+    quantity: number,
+    unit: "ml" | "leaves" | "wedge" | "dashes",
+  ][];
   steps: string;
   garnish: string;
 };
@@ -112,9 +128,9 @@ export const recipes: Recipe[] = [
     glass: "rocks",
     color: "#bc4b32",
     ingredients: [
-      ["Gin", "30 ml"],
-      ["Campari", "30 ml"],
-      ["Sweet vermouth", "30 ml"],
+      ["Gin", 30, "ml"],
+      ["Campari", 30, "ml"],
+      ["Sweet vermouth", 30, "ml"],
     ],
     steps:
       "Stir all three ingredients over ice for 20 seconds. Strain over one large cube in a rocks glass.",
@@ -127,11 +143,11 @@ export const recipes: Recipe[] = [
     glass: "spritz",
     color: "#c4dd52",
     ingredients: [
-      ["Prosecco", "90 ml"],
-      ["Elderflower liqueur", "45 ml"],
-      ["Soda water", "30 ml"],
-      ["Mint", "4 leaves"],
-      ["Lime", "1 wedge"],
+      ["Prosecco", 90, "ml"],
+      ["Elderflower liqueur", 45, "ml"],
+      ["Soda water", 30, "ml"],
+      ["Mint", 4, "leaves"],
+      ["Lime", 1, "wedge"],
     ],
     steps:
       "Gently press the mint in a wine glass. Add ice, elderflower liqueur, prosecco and soda. Stir gently and add the lime.",
@@ -144,9 +160,9 @@ export const recipes: Recipe[] = [
     glass: "rocks",
     color: "#e78c1e",
     ingredients: [
-      ["Bourbon", "60 ml"],
-      ["Simple syrup", "7.5 ml"],
-      ["Angostura bitters", "2 dashes"],
+      ["Bourbon", 60, "ml"],
+      ["Simple syrup", 7.5, "ml"],
+      ["Angostura bitters", 2, "dashes"],
     ],
     steps:
       "Stir the ingredients with ice. Strain over a large cube in a rocks glass. Express an orange peel over the drink.",
@@ -159,8 +175,8 @@ export const recipes: Recipe[] = [
     glass: "martini",
     color: "#d9cf9d",
     ingredients: [
-      ["Gin", "60 ml"],
-      ["Dry vermouth", "10 ml"],
+      ["Gin", 60, "ml"],
+      ["Dry vermouth", 10, "ml"],
     ],
     steps:
       "Stir with ice for 25 seconds. Strain into a chilled cocktail glass.",
@@ -173,9 +189,9 @@ export const recipes: Recipe[] = [
     glass: "rocks",
     color: "#ac5f39",
     ingredients: [
-      ["Bourbon", "45 ml"],
-      ["Campari", "30 ml"],
-      ["Sweet vermouth", "30 ml"],
+      ["Bourbon", 45, "ml"],
+      ["Campari", 30, "ml"],
+      ["Sweet vermouth", 30, "ml"],
     ],
     steps: "Stir with ice until cold. Strain over a large ice cube.",
     garnish: "Orange twist",
@@ -187,8 +203,8 @@ export const recipes: Recipe[] = [
     glass: "tall",
     color: "#c59b59",
     ingredients: [
-      ["Scotch", "45 ml"],
-      ["Soda water", "120 ml"],
+      ["Scotch", 45, "ml"],
+      ["Soda water", 120, "ml"],
     ],
     steps:
       "Fill a tall glass with ice. Add Scotch, top with chilled soda and stir once.",
@@ -201,9 +217,9 @@ export const recipes: Recipe[] = [
     glass: "rocks",
     color: "#c5b559",
     ingredients: [
-      ["Gin", "30 ml"],
-      ["Gentian liqueur", "30 ml"],
-      ["Aromatized wine", "30 ml"],
+      ["Gin", 30, "ml"],
+      ["Gentian liqueur", 30, "ml"],
+      ["Aromatized wine", 30, "ml"],
     ],
     steps:
       "Stir with ice for 20 seconds. Strain into a rocks glass over fresh ice.",
@@ -216,9 +232,9 @@ export const recipes: Recipe[] = [
     glass: "tall",
     color: "#bd6855",
     ingredients: [
-      ["Campari", "30 ml"],
-      ["Sweet vermouth", "30 ml"],
-      ["Soda water", "60 ml"],
+      ["Campari", 30, "ml"],
+      ["Sweet vermouth", 30, "ml"],
+      ["Soda water", 60, "ml"],
     ],
     steps:
       "Pour Campari and vermouth over ice. Top with chilled soda and stir gently.",
@@ -252,3 +268,13 @@ export const families: Record<string, string> = {
   "white-negroni": "Aperitivo",
   americano: "Aperitivo",
 };
+
+// The source recipes use millilitres. Display approximate bar measures at 30 ml per oz.
+export function measure(
+  amount: number,
+  unit: Recipe["ingredients"][number][2],
+) {
+  return unit === "ml"
+    ? Number((amount / 30).toFixed(2)) + " oz / " + amount + " ml"
+    : amount + " " + unit;
+}

@@ -1,77 +1,166 @@
 import type { Recipe } from "./data";
-export function Glass({ recipe: r }: { recipe: Recipe }) {
-  const c = r.color;
+const glass = "#dedfda";
+function Cube({
+  x,
+  y,
+  angle = 0,
+  size = 38,
+}: {
+  x: number;
+  y: number;
+  angle?: number;
+  size?: number;
+}) {
   return (
-    <svg viewBox="0 0 230 190" className="glass" aria-hidden="true">
-      {r.glass === "martini" ? (
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${size / 38})`}>
+      <path d="M0 6 26 0 39 7 14 14Z" fill="#fffaed" opacity=".74" />
+      <path d="M0 6 14 14 13 40 1 32Z" fill="#fff4de" opacity=".30" />
+      <path d="M14 14 39 7 36 33 13 40Z" fill="#fff5e5" opacity=".52" />
+    </g>
+  );
+}
+function Rock({ id }: { id: string }) {
+  const old = id === "old-fashioned",
+    white = id === "white-negroni",
+    boulevard = id === "boulevardier";
+  const liquid = old
+    ? "#c77929"
+    : white
+      ? "#c9c469"
+      : boulevard
+        ? "#963f31"
+        : "#c13326";
+  return (
+    <g>
+      <path
+        d={old ? "M64 66H179L168 166H76Z" : "M62 64H182L178 166H66Z"}
+        fill={glass}
+      />
+      <path
+        d={old ? "M68 84H176L168 155H75Z" : "M64 87H180L177 156H66Z"}
+        fill={liquid}
+      />
+      {old ? (
         <>
+          <path d="M74 119Q117 103 172 116L168 155H76Z" fill="#bd6621" />
+          <Cube x={92} y={87} angle={-12} size={51} />
           <path
-            d="M49 37H181L120 105Q117 109 117 117V160Q117 166 140 167Q151 170 114 170Q78 170 89 167Q112 166 112 160V117Q112 109 108 105Z"
-            fill="#e8e5e3"
-            stroke="#c7c3c1"
+            d="M136 91Q151 72 127 62Q100 51 108 33L120 34Q112 48 137 58Q164 69 147 91Z"
+            fill="#e88a20"
           />
-          <path d="M61 50H169L117 105Z" fill="#d7d6d0" />
-          <path d="m82 22 58 85" stroke="#996126" strokeWidth="3" />
-          {[
-            [94, 40],
-            [108, 61],
-            [122, 82],
-          ].map(([x, y]) => (
-            <g key={x}>
-              <ellipse cx={x} cy={y} rx="10" ry="8" fill="#898b31" />
-              <ellipse cx={x + 3} cy={y + 1} rx="3" ry="3.5" fill="#b84220" />
-            </g>
-          ))}
         </>
-      ) : r.glass === "spritz" ? (
+      ) : white ? (
         <>
+          <Cube x={82} y={90} angle={8} />
           <path
-            d="M84 20Q55 94 83 116Q94 125 112 130V164Q112 172 88 172Q78 177 115 177Q151 177 142 172Q118 172 118 164V130Q138 124 147 115Q171 87 145 20Z"
-            fill="#f2f0e9"
-            stroke="#ccc9c3"
+            d="M143 95Q130 75 151 49L163 46Q140 73 157 91Z"
+            fill="#e8a69c"
           />
-          <path d="M73 61Q60 113 115 129Q167 109 156 61Z" fill="#e6ef9a" />
-          <path d="m87 70 28-5 5 25-27 6z" fill="#ffffe8" />
-          <path
-            d="M120 90l26-15q9 23-9 28q-12 2-17-13"
-            fill="#d7ed5e"
-            stroke="#93ab2c"
-            strokeWidth="3"
-          />
-          <path
-            d="M115 56Q87 44 93 32Q113 32 116 51Q113 25 139 20Q142 42 115 56"
-            fill="#84ae35"
-          />
+        </>
+      ) : boulevard ? (
+        <>
+          <Cube x={102} y={86} angle={19} />
+          <path d="M81 87Q90 60 118 56L112 65Q95 71 92 91Z" fill="#f2a142" />
         </>
       ) : (
-        <g
-          transform={
-            r.glass === "tall" ? "translate(31,-32) scale(.73,1.22)" : ""
-          }
-        >
+        <>
+          <Cube x={77} y={84} angle={-9} size={52} />
+          <Cube x={125} y={111} angle={8} size={34} />
           <path
-            d="M56 48Q115 32 174 48V151Q117 167 56 151Z"
-            fill="#e5e2e3"
-            stroke="#c5c1c1"
+            d="M111 85 143 52 155 29 165 34 151 64 124 88Z"
+            fill="#f29421"
           />
-          <ellipse
-            cx="115"
-            cy="48"
-            rx="59"
-            ry="6.6"
-            fill="#efecec"
-            stroke="#d6d2d1"
-          />
-          <path d="M57 80Q115 90 173 80V143Q117 157 57 143Z" fill={c} />
-          <ellipse cx="115" cy="80" rx="58" ry="7" fill={c} />
-          <path d="m83 80 24-9 45 8-21 11z" fill="#ffdbad" opacity=".85" />
-          <path d="m83 80 48 10-6 49-45-11z" fill="#ffddbb" opacity=".65" />
-          <path d="m131 90 21-11-5 48-22 12z" fill="#f7cba7" opacity=".7" />
-          <path
-            d="M109 78C120 59 152 58 151 30L163 42C157 65 133 76 122 80Z"
-            fill="#efa32c"
-          />
-        </g>
+          <path d="m111 85-16-15 12-2 17 20z" fill="#d56c19" />
+        </>
+      )}
+      <path d="M69 159H175" stroke="#c5c6c1" strokeWidth="1.5" />
+    </g>
+  );
+}
+function Martini() {
+  return (
+    <>
+      <path
+        d="M43 43H199L128 114Q124 120 124 128V158Q124 167 152 169V172H89V169Q118 166 118 158V128Q118 119 112 112Z"
+        fill={glass}
+      />
+      <path d="M58 56H184L123 112Z" fill="#c6cbc6" />
+      <path d="m142 20-39 80" stroke="#926f4b" strokeWidth="3" />
+      <g transform="rotate(26 125 57)">
+        <rect x="115" y="43" width="22" height="26" rx="10" fill="#828d3a" />
+        <ellipse cx="125" cy="48" rx="6" ry="4" fill="#b95b3c" />
+      </g>
+      <path d="M48 44H194" stroke="#fbfaf8" strokeWidth="2" />
+    </>
+  );
+}
+function Spritz() {
+  return (
+    <>
+      <path
+        d="M79 42H163L174 89Q180 121 134 132Q124 135 124 143V159Q124 167 150 169V171H92V169Q117 166 117 159V143Q117 135 108 132Q64 122 68 92Z"
+        fill={glass}
+      />
+      <path
+        d="M73 72H169L173 91Q176 120 121 130Q66 123 70 92Z"
+        fill="#d8e28c"
+      />
+      <Cube x={83} y={80} angle={-13} size={32} />
+      <path
+        d="M128 104 158 77A27 27 0 0 1 128 104Z"
+        fill="#94b54e"
+        stroke="#819e40"
+        strokeWidth="3"
+      />
+      <path
+        d="M126 77Q129 47 149 30"
+        stroke="#416944"
+        strokeWidth="2"
+        fill="none"
+      />
+      <path d="M135 57Q125 36 131 24Q147 37 135 57Z" fill="#678650" />
+      <path d="M139 48Q141 26 161 25Q154 43 139 48Z" fill="#46704c" />
+      <path d="M130 68Q110 60 113 45Q128 50 130 68Z" fill="#90a867" />
+    </>
+  );
+}
+function Tall({ americano }: { americano: boolean }) {
+  return (
+    <>
+      <path d="M83 31H158L154 168H87Z" fill={glass} />
+      <path
+        d="M85 55H156L153 158H88Z"
+        fill={americano ? "#c3644d" : "#d3b17b"}
+      />
+      <Cube x={95} y={57} angle={-8} size={32} />
+      <Cube x={112} y={99} angle={9} size={30} />
+      {americano ? (
+        <path
+          d="M114 42H174A30 30 0 0 1 114 42Z"
+          fill="#ed9d49"
+          stroke="#d97828"
+          strokeWidth="3"
+        />
+      ) : (
+        <path
+          d="M137 75Q102 62 135 44Q156 32 144 20L154 21Q171 36 145 53Q121 66 147 72Z"
+          fill="#e5bd42"
+        />
+      )}
+    </>
+  );
+}
+export function Glass({ recipe: r }: { recipe: Recipe }) {
+  return (
+    <svg className="glass" viewBox="0 0 240 190" aria-hidden="true">
+      {r.glass === "spritz" ? (
+        <Spritz />
+      ) : r.glass === "martini" ? (
+        <Martini />
+      ) : r.glass === "tall" ? (
+        <Tall americano={r.id === "americano"} />
+      ) : (
+        <Rock id={r.id} />
       )}
     </svg>
   );
