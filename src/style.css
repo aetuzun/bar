@@ -768,3 +768,23 @@ footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100v
 dialog h2:focus { outline: none; }
 @media (max-width: 650px) { .recipe-heading { padding-right: 0; } .recipe > .order-tools { z-index: 1; } }
 
+
+.curator { position: relative; }
+.curator .order-tools { position: absolute; top: 3px; right: 8px; }
+.curator .curator-tools:not(:has(.availability)) { display: contents; }
+.curator { grid-template-columns: clamp(110px, 19vw, 205px) minmax(0, 1fr); }
+.curator h2 { padding-right: 84px; }
+.curator .curator-tools:has(.availability) { grid-column: 2; align-items: start; }
+.garnish p { padding-inline-start: 1.25em; }
+.title-field select, dialog select {
+  appearance: none;
+  padding-inline-end: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 12 8%27%3E%3Cpath d=%27m2 2 4 4 4-4%27 fill=%27none%27 stroke=%27%23111%27 stroke-width=%271.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E");
+  background-size: 12px 8px; background-repeat: no-repeat; background-position: right 14px center;
+}
+@media (max-width: 650px) {
+  .curator { grid-template-columns: 28% minmax(0, 1fr); padding-top: 42px; }
+  .curator h2 { padding-right: 0; }
+}
+@media (forced-colors: active) { .title-field select, dialog select { appearance: auto; background-image: none; } }
+

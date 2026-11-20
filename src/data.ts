@@ -24,6 +24,8 @@ export type Item = {
   status: Status;
   kind: string;
   openedOn?: string;
+  shoppingRecipes?: string[];
+  shoppingOrigin?: "created" | "unconfirmed";
 };
 const bottle = (
   id: string,
@@ -632,3 +634,15 @@ export const ingredientKinds = [...new Set([...seed.map(i => i.kind), ...Object.
 export const kindGroup = (kind: string): Group =>
   seed.find(i => i.kind === kind)?.group ?? extraKinds[kind] ?? "Mixers";
 export const onShoppingList = (item: Item) => item.status === "Planned" || item.status === "Unavailable";
+
+export function releaseShopping(items: Item[], recipeId: string): Item[] {
+  return items.flatMap(item => {
+    if (!item.shoppingRecipes?.includes(recipeId)) return [item];
+    const remaining = item.shoppingRecipes.filter(id => id !== recipeId);
+    if (remaining.length) return [{ ...item, shoppingRecipes: remaining }];
+    const { shoppingOrigin, shoppingRecipes, ...stock } = item;
+    if (item.status !== "Planned") return [stock];
+    if (shoppingOrigin === "created") return [];
+    return [{ ...stock, status: shoppingOrigin === "unconfirmed" ? "Needs confirmation" : stock.status }];
+  });
+}

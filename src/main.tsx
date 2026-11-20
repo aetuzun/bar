@@ -6,7 +6,7 @@ import {
   families,
   groups,
   recipes,
-  seed, ingredientKinds, kindGroup, onShoppingList,
+  seed, ingredientKinds, kindGroup, onShoppingList, releaseShopping,
   statuses,
   type Item,
   type Recipe,
@@ -285,7 +285,11 @@ function Bar({
         <Editor
           item={edit}
           close={() => setEdit(null)}
-          save={(item) => {
+          save={(edited) => {
+            const item = { ...edited };
+            // Saving a stock row makes it a manual inventory entry.
+            delete item.shoppingOrigin;
+            if (!onShoppingList(item) || item.kind !== edit.kind) delete item.shoppingRecipes;
             update({
               ...state,
               items: state.items.some((i) => i.id === item.id)
@@ -356,14 +360,14 @@ function RecipeEntry({
   state,
   toggle, shop,
 }: {
-  shop: (kinds: string[]) => void;
+  shop: (recipeId: string, kinds: string[], remove: boolean) => void;
   r: Recipe; controls: React.ReactNode;
   state: BarState;
   toggle: (id: string) => void;
 }) {
   const result = availability(r, state.items),
     selected = state.draft.includes(r.id);
-  const toBuy = result.missing.filter(kind => !state.items.some(i => i.kind === kind && onShoppingList(i)));
+  const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
   return (
     <article className="recipe">
       {controls}
@@ -410,9 +414,9 @@ function RecipeEntry({
           <button className="menu-toggle" aria-pressed={selected} aria-label={"Menu, " + r.name}
             onClick={() => toggle(r.id)}><span aria-hidden="true" />Menu</button>
         ) : (
-          <button className="menu-toggle shopping-action" data-complete={!toBuy.length}
-            aria-label={(toBuy.length ? "Add missing ingredients to shopping list for " : "On shopping list for ") + r.name}
-            aria-disabled={!toBuy.length} onClick={() => { if (toBuy.length) shop(toBuy); }}>
+          <button className="menu-toggle shopping-action" aria-pressed={shopping}
+            aria-label={(shopping ? "Remove " : "Add ") + r.name + (shopping ? " from shopping list" : " to shopping list")}
+            onClick={() => shop(r.id, result.missing, shopping)}>
             <span aria-hidden="true" />Shopping list
           </button>
         )}
@@ -426,7 +430,7 @@ function Recipes({
 }: {
   state: BarState;
   setOrder: (ids: string[]) => void;
-  shop: (kinds: string[]) => void;
+  shop: (recipeId: string, kinds: string[], remove: boolean) => void;
   toggle: (id: string) => void;
 }) {
   const [filter, setFilter] = useState("All");
@@ -750,13 +754,23 @@ function Manager({ route }: { route: string }) {
       setError(true);
     }
   }
-  function shop(kinds: string[]) {
+  function shop(recipeId: string, kinds: string[], remove: boolean) {
+    if (remove) {
+      update({ ...state, items: releaseShopping(state.items, recipeId) });
+      return;
+    }
     const items = [...state.items];
     for (const kind of new Set(kinds)) {
-      if (items.some(i => i.kind === kind && (onShoppingList(i) || inStock(i)))) continue;
-      const existing = items.findIndex(i => i.kind === kind && i.status === "Needs confirmation");
-      if (existing >= 0) items[existing] = { ...items[existing], status: "Planned" };
-      else items.push({ id: crypto.randomUUID(), name: kind, kind, group: kindGroup(kind), status: "Planned" });
+      let index = items.findIndex(i => i.kind === kind && onShoppingList(i));
+      if (index < 0) index = items.findIndex(i => i.kind === kind && i.status === "Needs confirmation");
+      if (index < 0) {
+        items.push({ id: crypto.randomUUID(), name: kind, kind, group: kindGroup(kind), status: "Planned",
+          shoppingOrigin: "created", shoppingRecipes: [recipeId] });
+      } else {
+        const item = items[index];
+        items[index] = { ...item, shoppingRecipes: [...new Set([...(item.shoppingRecipes || []), recipeId])],
+          ...(item.status === "Needs confirmation" ? { status: "Planned", shoppingOrigin: "unconfirmed" } : {}) };
+      }
     }
     update({ ...state, items });
   }
@@ -779,7 +793,10 @@ function Manager({ route }: { route: string }) {
           </p>
         )}
         {route === "recipes" ? (
-          <Recipes setOrder={recipeOrder => update({ ...state, recipeOrder })} shop={shop} state={state} toggle={toggle} />
+          <Recipes setOrder={recipeOrder => {
+            const removed = state.recipeOrder.find(id => !recipeOrder.includes(id));
+            update({ ...state, recipeOrder, items: removed ? releaseShopping(state.items, removed) : state.items });
+          }} shop={shop} state={state} toggle={toggle} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} />
         ) : (
