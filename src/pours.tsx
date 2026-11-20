@@ -14,6 +14,8 @@ export const eligible = (item: Item) =>
 export const inStock = (item: Item) =>
   eligible(item) && (item.status === "Available" || item.status === "Low");
 export function describe(item: Item): Pour {
+  const explicit = pourStyles.find(style => style === item.kind && style !== "Whisky");
+  if (item.group === "Wine & sparkling" && explicit) return { name: item.name, style: explicit };
   const text = (item.kind + " " + item.name).toLowerCase();
   const style =
     item.group === "Whiskies"

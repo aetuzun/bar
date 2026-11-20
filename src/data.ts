@@ -615,6 +615,10 @@ export function measure(
 }
 
 const extraKinds: Record<string, Group> = {
+  "Red wine": "Wine & sparkling", "White wine": "Wine & sparkling", "Rosé": "Wine & sparkling",
+  "Sparkling wine": "Wine & sparkling", Sherry: "Vermouth & fortified wine", Port: "Vermouth & fortified wine",
+  Brandy: "Spirits", "Aged rum": "Spirits", "Irish whiskey": "Whiskies", "Tonic water": "Mixers",
+  "Orange juice": "Mixers", "Pineapple juice": "Mixers", Grenadine: "Bitters & syrups",
   "Rye whiskey": "Whiskies", "White rum": "Spirits", "Dark rum": "Spirits", Vodka: "Spirits",
   "Citrus vodka": "Spirits", Cognac: "Spirits", "Green Chartreuse": "Aperitifs & liqueurs",
   "Maraschino liqueur": "Aperitifs & liqueurs", "Coffee liqueur": "Aperitifs & liqueurs",

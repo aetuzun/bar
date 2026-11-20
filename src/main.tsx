@@ -138,11 +138,10 @@ function Editor({
             save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
         }}
       >
-        <h2>{item.name ? "Edit item" : "Add item"}</h2>
+        <h2 tabIndex={-1} autoFocus>{item.name ? "Edit item" : "Add item"}</h2>
         <label>
           Item name
           <input
-            autoFocus
             required
             maxLength={100}
             value={form.name}
@@ -194,9 +193,7 @@ function Editor({
             ))}
           </select>
         </label>
-        <small className="storage-note">
-          Inventory is saved only in this browser.
-        </small>
+
         <div className="actions">
           <button type="button" onClick={close}>
             Cancel
@@ -282,6 +279,7 @@ function Bar({
         >
           Add item
         </button>
+        <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
       </section>
       {edit && (
         <Editor
@@ -323,13 +321,43 @@ function Availability({
     </p>
   );
 }
+function OrderTools({name, index, count, move, remove}: {
+  name: string; index: number; count: number; move: (offset: number) => void; remove: () => void;
+}) {
+  return (
+              <div className="actions order-tools">
+                {[
+                  [-1, "up"],
+                  [1, "down"],
+                ].map(([offset, label]) => (
+                  <button
+                    key={label}
+                    disabled={
+                      index + Number(offset) < 0 ||
+                      index + Number(offset) >= count
+                    }
+                    aria-label={"Move " + name + " " + label}
+                    onClick={() => move(Number(offset))}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: offset === 1 ? "rotate(180deg)" : undefined }}><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
+                ))}
+                <button
+                  aria-label={"Remove " + name}
+                  onClick={remove}
+                >
+                  ×
+                </button>
+              </div>
+  );
+}
 function RecipeEntry({
-  r,
+  r, controls,
   state,
   toggle, shop,
 }: {
   shop: (kinds: string[]) => void;
-  r: Recipe;
+  r: Recipe; controls: React.ReactNode;
   state: BarState;
   toggle: (id: string) => void;
 }) {
@@ -338,6 +366,7 @@ function RecipeEntry({
   const toBuy = result.missing.filter(kind => !state.items.some(i => i.kind === kind && onShoppingList(i)));
   return (
     <article className="recipe">
+      {controls}
       <div className="drink-art">
         <Glass recipe={r} />
       </div>
@@ -376,34 +405,32 @@ function RecipeEntry({
         </div>
       </section>
       <div className="recipe-tools">
-        <div><Availability id={"stock-" + r.id} result={result} />
-          {!!result.missing.length && (toBuy.length ? <button className="shop-action" onClick={() => shop(toBuy)}>Add missing to shopping list</button> : <small>On shopping list</small>)}
-        </div>
-        <button
-          className="menu-toggle"
-          aria-pressed={selected}
-          aria-label={"Menu, " + r.name}
-          aria-describedby={"stock-" + r.id}
-          disabled={!result.ready}
-          onClick={() => toggle(r.id)}
-        >
-          <span aria-hidden="true" />
-          Menu
-        </button>
+        <Availability id={"stock-" + r.id} result={result} />
+        {result.ready ? (
+          <button className="menu-toggle" aria-pressed={selected} aria-label={"Menu, " + r.name}
+            onClick={() => toggle(r.id)}><span aria-hidden="true" />Menu</button>
+        ) : (
+          <button className="menu-toggle shopping-action" data-complete={!toBuy.length}
+            aria-label={(toBuy.length ? "Add missing ingredients to shopping list for " : "On shopping list for ") + r.name}
+            aria-disabled={!toBuy.length} onClick={() => { if (toBuy.length) shop(toBuy); }}>
+            <span aria-hidden="true" />Shopping list
+          </button>
+        )}
       </div>
     </article>
   );
 }
 function Recipes({
   state,
-  toggle, shop,
+  toggle, shop, setOrder,
 }: {
   state: BarState;
+  setOrder: (ids: string[]) => void;
   shop: (kinds: string[]) => void;
   toggle: (id: string) => void;
 }) {
   const [filter, setFilter] = useState("All");
-  const list = recipes.filter(
+  const list = state.recipeOrder.map(byId).filter(
     (r) =>
       filter === "All" ||
       families[r.id] === filter ||
@@ -411,6 +438,13 @@ function Recipes({
       (filter === "Missing 1" &&
         availability(r, state.items).missing.length === 1),
   );
+  const remaining = recipes.filter(r => !state.recipeOrder.includes(r.id)).sort((a,b) => a.name.localeCompare(b.name));
+  function move(index: number, offset: number) {
+    const order = [...state.recipeOrder];
+    const a = order.indexOf(list[index].id), b = order.indexOf(list[index + offset].id);
+    [order[a], order[b]] = [order[b], order[a]];
+    setOrder(order);
+  }
   return (
     <>
       <div className="pagehead">
@@ -432,10 +466,19 @@ function Recipes({
           </button>
         ))}
       </div>
-      {list.map((r) => (
-        <RecipeEntry shop={shop} key={r.id} r={r} state={state} toggle={toggle} />
+      {list.map((r, index) => (
+        <RecipeEntry controls={<OrderTools name={r.name} index={index} count={list.length}
+          move={offset => move(index, offset)} remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />} shop={shop} key={r.id} r={r} state={state} toggle={toggle} />
       ))}
-      {!list.length && <p>No matching recipes.</p>}
+      {!list.length && <p>{state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+      <label className="title-field"><span>Add cocktail</span>
+        <select value="" disabled={!remaining.length} onChange={e => {
+          if (e.target.value) { setOrder([...state.recipeOrder, e.target.value]); setFilter("All"); }
+        }}>
+          <option value="">{remaining.length ? "Choose a cocktail…" : "All cocktails added"}</option>
+          {remaining.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+      </label>
     </>
   );
 }
@@ -577,33 +620,8 @@ function Menu({
             )}
             <div className="curator-tools">
               {!result.ready && <Availability result={result} />}
-              <div className="actions">
-                {[
-                  [-1, "up"],
-                  [1, "down"],
-                ].map(([offset, label]) => (
-                  <button
-                    key={label}
-                    disabled={
-                      index + Number(offset) < 0 ||
-                      index + Number(offset) >= visible.length
-                    }
-                    aria-label={"Move " + r.name + " " + label}
-                    onClick={() => move(index, Number(offset))}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: offset === 1 ? "rotate(180deg)" : undefined }}><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  </button>
-                ))}
-                <button
-                  aria-label={"Remove " + r.name}
-                  onClick={() => {
-                    toggle(id);
-                    setNotice("");
-                  }}
-                >
-                  ×
-                </button>
-              </div>
+              <OrderTools name={r.name} index={index} count={visible.length} move={offset => move(index, offset)}
+                remove={() => { toggle(id); setNotice(""); }} />
             </div>
           </article>
         );
@@ -761,7 +779,7 @@ function Manager({ route }: { route: string }) {
           </p>
         )}
         {route === "recipes" ? (
-          <Recipes shop={shop} state={state} toggle={toggle} />
+          <Recipes setOrder={recipeOrder => update({ ...state, recipeOrder })} shop={shop} state={state} toggle={toggle} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} />
         ) : (

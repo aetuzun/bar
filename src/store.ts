@@ -22,6 +22,7 @@ export type Snapshot = {
 export type BarState = {
   items: Item[];
   draft: string[];
+  recipeOrder: string[];
   title: string;
   footer: string;
   scene?: Scene;
@@ -130,6 +131,7 @@ export const storage = {
   load(): BarState {
     const initial = {
       items: seed,
+      recipeOrder: recipes.slice(0, 8).map(r => r.id),
       draft: demoMenu.filter(
         (id) =>
           availability(
@@ -162,6 +164,8 @@ export const storage = {
           ...item,
           group: migratedGroup(item),
         })),
+        recipeOrder: Array.isArray(data.recipeOrder) ? validIds(data.recipeOrder)
+          : validIds([...initial.recipeOrder, ...validIds(data.draft)]),
         draft: validIds(
           data.draft,
           data.items.map((i: Item) => "pour:" + i.id),
