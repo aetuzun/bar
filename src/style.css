@@ -101,7 +101,9 @@ nav,
     top: var(--top);
     left: 50%;
     transform: translateX(-50%);
-    width: min(416px, calc(100% - 2 * max(18px, env(safe-area-inset-left), env(safe-area-inset-right))));
+    width: var(--width);
+    max-width: calc(100% - 2 * max(16px, env(safe-area-inset-left), env(safe-area-inset-right)));
+    border: 1px solid #272727;
     height: min(180px, 22svh);
     background: #000;
     display: grid;
@@ -118,7 +120,7 @@ nav,
   .guest-header .brand { animation: guest-title var(--intro-duration) both; }
 }
 @keyframes guest-island {
-  0%, 3%, 98%, 100% { clip-path: inset(0 calc(50% - 58px) calc(100% - 28px) round 16px); }
+  0%, 3%, 98%, 100% { clip-path: inset(0 0 calc(100% - 28px) round 16px); }
   18%, 91% { clip-path: inset(0 round 24px); }
   0%, 100% { opacity: 0; }
   4%, 98% { opacity: 1; }
@@ -278,7 +280,7 @@ nav a[aria-current]:after,
   border-radius: 5px;
   display: grid;
   place-items: center;
-  background: #f1efec;
+  background: #ebe8e2;
 }
 .recipe .drink-art {
   grid-area: art;
@@ -680,7 +682,7 @@ dialog .actions {
 
 .recipe,
 .menurow {
-  background: #f1efec;
+  background: #ebe8e2;
   border: 0;
   border-radius: 6px;
   padding: clamp(14px, 2vw, 26px);
@@ -728,32 +730,20 @@ footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100v
 .visually-hidden { position: absolute; width: 1px !important; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 
-.family-panel { display: none; }
-@media (prefers-reduced-motion: no-preference) {
-  .family-panel {
-    position: fixed;
-    z-index: 5;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(388px, calc(100% - 2 * max(28px, env(safe-area-inset-left), env(safe-area-inset-right))));
-    height: min(300px, 36svh);
-    display: grid;
-    place-items: center;
-    background: #000;
-    animation: family-open var(--intro-duration) cubic-bezier(.4,0,.2,1) both;
-  }
-  .family-sprite {
-    width: min(336px, 94%, 54svh);
-    aspect-ratio: 112 / 64;
-    image-rendering: pixelated;
-    background: url("./family-high-five.png") left center / 3200% 100% no-repeat;
-    animation: guest-reveal var(--intro-duration) both, family-five 3.2s 2.2s 2 both;
-  }
-}
-@keyframes family-open {
-  0%, 3%, 98%, 100% { clip-path: inset(calc(50% - 14px) calc(50% - 42px) round 16px); opacity: 0; }
-  18%, 91% { clip-path: inset(0 round 24px); opacity: 1; }
-}
-@keyframes family-five { from { background-position-x: 0%; animation-timing-function: steps(31,end); } to { background-position-x: 100%; } }
 
+.garnish { display: block; }
+.garnish p { margin-top: 6px; }
+.shopping-group { margin-top: 28px; border-top: 2px solid var(--line); padding-top: 22px; }
+.opened-date, .recipe-tools small { display: block; color: var(--muted); font-size: .8rem; }
+.shop-action { min-height: 36px; text-decoration: underline; text-underline-offset: 3px; }
+.people-sprite {
+  width: min(245px, 65%, 35svh); aspect-ratio: 112 / 64;
+  background-position: left center; background-size: 3200% 100%; background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation: guest-reveal var(--intro-duration) both, guest-pour 3.2s 2.2s 2 both;
+}
+.people-sprite.family { background-image: url("./family-high-five.png"); }
+.people-sprite.bartender { background-image: url("./bartender.png"); }
+.people-sprite.toast { background-image: url("./toast.png"); }
+.people-sprite.dance { background-image: url("./dance.png"); }
+.people-sprite.friends { background-image: url("./friends.png"); }

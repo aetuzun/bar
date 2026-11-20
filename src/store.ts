@@ -8,10 +8,15 @@ import {
   type Item,
 } from "./data";
 import { describe, pourStyles, type Pour } from "./pours";
+export const animations = { shaker: "Cocktail shaker", bartender: "Behind the bar", toast: "A toast for two", dance: "Dance partners", friends: "Cheers with friends", family: "Family high-five" } as const;
+export type Scene = keyof typeof animations;
+const sceneOf = (value: unknown): Scene =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(animations, value) ? value as Scene : "shaker";
 export type Snapshot = {
   ids: string[];
   title: string;
   footer?: string;
+  scene?: Scene;
   pours?: Pour[];
 };
 export type BarState = {
@@ -19,6 +24,7 @@ export type BarState = {
   draft: string[];
   title: string;
   footer: string;
+  scene?: Scene;
   published: Snapshot | null;
 };
 const key = "the-home-bar.beta.v1";
@@ -44,6 +50,7 @@ function readSnapshot(
   title: unknown,
   raw: unknown,
   footer?: unknown,
+  scene?: unknown,
 ): Snapshot {
   const pours: Pour[] =
     Array.isArray(raw) &&
@@ -62,6 +69,7 @@ function readSnapshot(
       pours.map((_, i) => "p" + i),
     ),
     title: titleOf(title),
+    scene: sceneOf(scene),
     ...(typeof footer === "string" ? { footer: footer.slice(0, 100) } : {}),
     ...(pours.length ? { pours } : {}),
   };
@@ -74,7 +82,7 @@ export function publishSnapshot(state: BarState): Snapshot {
     pours.push(describe(item));
     return "p" + (pours.length - 1);
   });
-  return readSnapshot(ids, state.title, pours, state.footer);
+  return readSnapshot(ids, state.title, pours, state.footer, state.scene);
 }
 export function guestMenu(hash: string): Snapshot {
   if (hash === "#guest") return { ids: demoMenu, title: "Menu" };
@@ -86,7 +94,7 @@ export function guestMenu(hash: string): Snapshot {
   } catch {
     pours = [];
   }
-  return readSnapshot(ids.split(","), params.get("t"), pours, params.get("f"));
+  return readSnapshot(ids.split(","), params.get("t"), pours, params.get("f"), params.get("a"));
 }
 export function guestUrl(snapshot: Snapshot) {
   const url = new URL(location.href);
@@ -95,6 +103,7 @@ export function guestUrl(snapshot: Snapshot) {
   if (snapshot.title !== "Menu") params.set("t", snapshot.title);
   if (snapshot.footer !== undefined)
     params.set("f", snapshot.footer);
+  if (snapshot.scene && snapshot.scene !== "shaker") params.set("a", snapshot.scene);
   if (snapshot.pours?.length) params.set("p", JSON.stringify(snapshot.pours));
   url.hash =
     "guest/" + snapshot.ids.join(",") + (params.size ? "?" + params : "");
@@ -145,6 +154,7 @@ export const storage = {
               data.published.title,
               data.published.pours,
               data.published.footer,
+              data.published.scene,
             )
           : null;
       return {
@@ -162,6 +172,7 @@ export const storage = {
           (!data.footerVersion && data.footer === "No rush.")
             ? defaultFooter
             : data.footer,
+        scene: sceneOf(data.scene),
         published,
       };
     } catch {

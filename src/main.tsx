@@ -6,7 +6,7 @@ import {
   families,
   groups,
   recipes,
-  seed,
+  seed, ingredientKinds, kindGroup, onShoppingList,
   statuses,
   type Item,
   type Recipe,
@@ -14,7 +14,7 @@ import {
 import { describe, eligible, inStock, PourRow, type Pour } from "./pours";
 import {
   publishSnapshot,
-  defaultFooter,
+  defaultFooter, animations, type Scene,
   guestMenu,
   guestUrl,
   storage,
@@ -26,7 +26,7 @@ import "./style.css";
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
-function Header({ route, guest = false }: { route: string; guest?: boolean }) {
+function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
   const [intro, setIntro] = useState(() => guest && !matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
     if (!intro) return;
@@ -54,22 +54,19 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
           </nav>
         )}
       </div>
-      {intro && (<>
+      {intro && (
         <button
           type="button"
           className="guest-island"
-          aria-label="Dismiss cocktail animation"
+          aria-label="Dismiss guest animation"
           onClick={() => setIntro(false)}
           onAnimationEnd={(event) => {
             if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
           }}
         >
-          <span className="guest-pour" aria-hidden="true" />
+          <span className={scene === "shaker" ? "guest-pour" : "people-sprite " + scene} aria-hidden="true" />
         </button>
-        <button type="button" className="family-panel" aria-label="Dismiss family animation" onClick={() => setIntro(false)}>
-          <span className="family-sprite" aria-hidden="true" />
-        </button>
-      </>)}
+      )}
     </header>
   );
 }
@@ -120,6 +117,7 @@ function Editor({
   close: () => void;
 }) {
   const [form, setForm] = useState(item);
+  const [custom, setCustom] = useState(!!item.kind && !ingredientKinds.includes(item.kind));
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialog.current?.showModal();
@@ -148,7 +146,11 @@ function Editor({
             required
             maxLength={100}
             value={form.name}
-            onChange={(e) => field("name", e.target.value)}
+            onChange={(e) => {
+              const name = e.target.value;
+              const known = !form.kind && seed.find(i => i.name.toLowerCase() === name.trim().toLowerCase());
+              setForm(known ? { ...form, name, kind: known.kind, group: known.group } : { ...form, name });
+            }}
           />
         </label>
         <label>
@@ -165,19 +167,21 @@ function Editor({
         </label>
         <label>
           Ingredient type
-          <input
-            list="kinds"
-            required
-            maxLength={80}
-            value={form.kind}
-            onChange={(e) => field("kind", e.target.value)}
-          />
+          <select aria-label="Ingredient type" required value={custom ? "__custom" : form.kind} onChange={e => {
+            const kind = e.target.value;
+            setCustom(kind === "__custom");
+            setForm({ ...form, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
+          }}>
+            <option value="" disabled>Choose a type…</option>
+            {groups.map(group => <optgroup key={group} label={group}>
+              {ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}
+            </optgroup>)}
+            <option value="__custom">Custom type…</option>
+          </select>
         </label>
-        <datalist id="kinds">
-          {[...new Set([...seed.map((i) => i.kind), ...recipes.flatMap(r => r.ingredients.map(([kind]) => kind))])].sort().map((k) => (
-            <option key={k}>{k}</option>
-          ))}
-        </datalist>
+        {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
+        {(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
+          <label>Opened on (optional)<input type="date" value={form.openedOn || ""} onChange={e => field("openedOn", e.target.value)} /></label>}
         <label>
           Status
           <select
@@ -219,7 +223,7 @@ function Bar({
       </div>
       <section className="inventory">
         <div className="filters">
-          {["All", ...groups, "Planned"].map((g) => (
+          {["All", ...groups, "Shopping list"].map((g) => (
             <button
               key={g}
               aria-pressed={filter === g}
@@ -230,21 +234,22 @@ function Bar({
           ))}
         </div>
         <div className="inventory-list">
-          {[...groups, "Planned"].map((g) => {
+          {[...groups, "Shopping list"].map((g) => {
             const rows = state.items.filter(
               (i) =>
-                (g === "Planned"
-                  ? i.status === "Planned"
-                  : i.group === g && i.status !== "Planned") &&
+                (g === "Shopping list"
+                  ? onShoppingList(i)
+                  : i.group === g && !onShoppingList(i)) &&
                 (filter === "All" || g === filter),
             );
-            if (!rows.length) return null;
+            if (!rows.length && !(g === "Shopping list" && filter === g)) return null;
             return (
-              <section className="group" key={g}>
+              <section className={g === "Shopping list" ? "group shopping-group" : "group"} key={g}>
                 <div className="group-title">
                   <h3>{g}</h3>
                 </div>
                 <div>
+                  {!rows.length && <p>Your shopping list is empty.</p>}
                   {rows.map((i) => (
                     <button
                       className="stockrow"
@@ -252,7 +257,7 @@ function Bar({
                       aria-label={"Edit " + i.name + ", " + i.status}
                       onClick={() => setEdit(i)}
                     >
-                      <span>{i.name}</span>
+                      <span>{i.name}{i.openedOn && !onShoppingList(i) && <small className="opened-date">Opened {i.openedOn}</small>}</span>
                       <span className={"status dotted " + slug(i.status)}>
                         {i.status}
                       </span>
@@ -271,7 +276,7 @@ function Bar({
               name: "",
               group: groups.find((g) => g === filter) || "Spirits",
               kind: "",
-              status: filter === "Planned" ? "Planned" : "Available",
+              status: filter === "Shopping list" ? "Planned" : "Available",
             })
           }
         >
@@ -321,14 +326,16 @@ function Availability({
 function RecipeEntry({
   r,
   state,
-  toggle,
+  toggle, shop,
 }: {
+  shop: (kinds: string[]) => void;
   r: Recipe;
   state: BarState;
   toggle: (id: string) => void;
 }) {
   const result = availability(r, state.items),
     selected = state.draft.includes(r.id);
+  const toBuy = result.missing.filter(kind => !state.items.some(i => i.kind === kind && onShoppingList(i)));
   return (
     <article className="recipe">
       <div className="drink-art">
@@ -369,7 +376,9 @@ function RecipeEntry({
         </div>
       </section>
       <div className="recipe-tools">
-        <Availability id={"stock-" + r.id} result={result} />
+        <div><Availability id={"stock-" + r.id} result={result} />
+          {!!result.missing.length && (toBuy.length ? <button className="shop-action" onClick={() => shop(toBuy)}>Add missing to shopping list</button> : <small>On shopping list</small>)}
+        </div>
         <button
           className="menu-toggle"
           aria-pressed={selected}
@@ -387,9 +396,10 @@ function RecipeEntry({
 }
 function Recipes({
   state,
-  toggle,
+  toggle, shop,
 }: {
   state: BarState;
+  shop: (kinds: string[]) => void;
   toggle: (id: string) => void;
 }) {
   const [filter, setFilter] = useState("All");
@@ -423,7 +433,7 @@ function Recipes({
         ))}
       </div>
       {list.map((r) => (
-        <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} />
+        <RecipeEntry shop={shop} key={r.id} r={r} state={state} toggle={toggle} />
       ))}
       {!list.length && <p>No matching recipes.</p>}
     </>
@@ -642,6 +652,11 @@ function Menu({
           ))}
         </select>
       </label>
+      <label className="title-field"><span>Guest animation</span>
+        <select value={state.scene || "shaker"} onChange={e => update({ ...state, scene: e.target.value as Scene })}>
+          {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+      </label>
       <label className="title-field">
         <span>Menu title</span>
         <input
@@ -717,6 +732,16 @@ function Manager({ route }: { route: string }) {
       setError(true);
     }
   }
+  function shop(kinds: string[]) {
+    const items = [...state.items];
+    for (const kind of new Set(kinds)) {
+      if (items.some(i => i.kind === kind && (onShoppingList(i) || inStock(i)))) continue;
+      const existing = items.findIndex(i => i.kind === kind && i.status === "Needs confirmation");
+      if (existing >= 0) items[existing] = { ...items[existing], status: "Planned" };
+      else items.push({ id: crypto.randomUUID(), name: kind, kind, group: kindGroup(kind), status: "Planned" });
+    }
+    update({ ...state, items });
+  }
   function toggle(id: string) {
     update({
       ...state,
@@ -736,7 +761,7 @@ function Manager({ route }: { route: string }) {
           </p>
         )}
         {route === "recipes" ? (
-          <Recipes state={state} toggle={toggle} />
+          <Recipes shop={shop} state={state} toggle={toggle} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} />
         ) : (
@@ -761,7 +786,7 @@ function App() {
     const snapshot = guestMenu(hash);
     return (
       <>
-        <Header key={hash} route="" guest />
+        <Header key={hash} route="" guest scene={snapshot.scene} />
         <main>
           <GuestList {...snapshot} />
         </main>

@@ -23,6 +23,7 @@ export type Item = {
   group: Group;
   status: Status;
   kind: string;
+  openedOn?: string;
 };
 const bottle = (
   id: string,
@@ -612,3 +613,18 @@ export function measure(
     ? Number((amount / 30).toFixed(2)) + " oz / " + amount + " ml"
     : amount + " " + (unit === "dashes" && amount === 1 ? "dash" : unit);
 }
+
+const extraKinds: Record<string, Group> = {
+  "Rye whiskey": "Whiskies", "White rum": "Spirits", "Dark rum": "Spirits", Vodka: "Spirits",
+  "Citrus vodka": "Spirits", Cognac: "Spirits", "Green Chartreuse": "Aperitifs & liqueurs",
+  "Maraschino liqueur": "Aperitifs & liqueurs", "Coffee liqueur": "Aperitifs & liqueurs",
+  "Crème de cassis": "Aperitifs & liqueurs", Drambuie: "Aperitifs & liqueurs", "Amaro Nonino": "Aperitifs & liqueurs",
+  Champagne: "Wine & sparkling", Lemon: "Fresh & garnishes", "Honey syrup": "Bitters & syrups",
+  "Lime cordial": "Bitters & syrups", "Cranberry juice": "Mixers", "Ginger beer": "Mixers",
+  "Grapefruit soda": "Mixers", Espresso: "Mixers",
+};
+export const ingredientKinds = [...new Set([...seed.map(i => i.kind), ...Object.keys(extraKinds),
+  ...recipes.flatMap(r => r.ingredients.map(([kind]) => kind))])].sort();
+export const kindGroup = (kind: string): Group =>
+  seed.find(i => i.kind === kind)?.group ?? extraKinds[kind] ?? "Mixers";
+export const onShoppingList = (item: Item) => item.status === "Planned" || item.status === "Unavailable";
