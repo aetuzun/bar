@@ -727,3 +727,33 @@ footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100v
 .publish .menu-toggle:disabled span { border-style: solid; }
 .visually-hidden { position: absolute; width: 1px !important; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
+
+.family-panel { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .family-panel {
+    position: fixed;
+    z-index: 5;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(388px, calc(100% - 2 * max(28px, env(safe-area-inset-left), env(safe-area-inset-right))));
+    height: min(300px, 36svh);
+    display: grid;
+    place-items: center;
+    background: #000;
+    animation: family-open var(--intro-duration) cubic-bezier(.4,0,.2,1) both;
+  }
+  .family-sprite {
+    width: min(336px, 94%, 54svh);
+    aspect-ratio: 112 / 64;
+    image-rendering: pixelated;
+    background: url("./family-high-five.png") left center / 3200% 100% no-repeat;
+    animation: guest-reveal var(--intro-duration) both, family-five 3.2s 2.2s 2 both;
+  }
+}
+@keyframes family-open {
+  0%, 3%, 98%, 100% { clip-path: inset(calc(50% - 14px) calc(50% - 42px) round 16px); opacity: 0; }
+  18%, 91% { clip-path: inset(0 round 24px); opacity: 1; }
+}
+@keyframes family-five { from { background-position-x: 0%; animation-timing-function: steps(31,end); } to { background-position-x: 100%; } }
+

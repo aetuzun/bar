@@ -54,7 +54,7 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
           </nav>
         )}
       </div>
-      {intro && (
+      {intro && (<>
         <button
           type="button"
           className="guest-island"
@@ -66,7 +66,10 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
         >
           <span className="guest-pour" aria-hidden="true" />
         </button>
-      )}
+        <button type="button" className="family-panel" aria-label="Dismiss family animation" onClick={() => setIntro(false)}>
+          <span className="family-sprite" aria-hidden="true" />
+        </button>
+      </>)}
     </header>
   );
 }
