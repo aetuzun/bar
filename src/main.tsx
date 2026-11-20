@@ -174,7 +174,7 @@ function Editor({
           />
         </label>
         <datalist id="kinds">
-          {[...new Set(seed.map((i) => i.kind))].sort().map((k) => (
+          {[...new Set([...seed.map((i) => i.kind), ...recipes.flatMap(r => r.ingredients.map(([kind]) => kind))])].sort().map((k) => (
             <option key={k}>{k}</option>
           ))}
         </datalist>
@@ -346,7 +346,7 @@ function RecipeEntry({
         <ul className="ingredients">
           {r.ingredients.map(([kind, amount, unit]) => (
             <li key={kind}>
-              <span>{kind}</span>
+              <span>{unit === "ml" && (kind === "Lime" || kind === "Lemon") ? kind + " juice" : kind}</span>
               <span>{measure(amount, unit)}</span>
             </li>
           ))}
@@ -411,10 +411,7 @@ function Recipes({
           "All",
           "Ready now",
           "Missing 1",
-          "Aperitivo",
-          "Whiskey",
-          "Spritz",
-          "Martini",
+          ...new Set(Object.values(families)),
         ].map((f) => (
           <button
             key={f}
