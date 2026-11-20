@@ -443,6 +443,15 @@ function Recipes({
         availability(r, state.items).missing.length === 1),
   );
   const remaining = recipes.filter(r => !state.recipeOrder.includes(r.id)).sort((a,b) => a.name.localeCompare(b.name));
+  const choices = [
+    { label: "Ready now", dot: "🟢", drinks: [] as Recipe[] },
+    { label: "Missing 1 ingredient", dot: "🟡", drinks: [] as Recipe[] },
+    { label: "Missing 2 or more ingredients", dot: "🟠", drinks: [] as Recipe[] },
+  ];
+  for (const recipe of remaining) {
+    const { missing } = availability(recipe, state.items);
+    choices[Math.min(missing.length, 2)].drinks.push(recipe);
+  }
   function move(index: number, offset: number) {
     const order = [...state.recipeOrder];
     const a = order.indexOf(list[index].id), b = order.indexOf(list[index + offset].id);
@@ -480,7 +489,11 @@ function Recipes({
           if (e.target.value) { setOrder([...state.recipeOrder, e.target.value]); setFilter("All"); }
         }}>
           <option value="">{remaining.length ? "Choose a cocktail…" : "All cocktails added"}</option>
-          {remaining.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          {choices.filter(group => group.drinks.length > 0).map(({ label, dot, drinks }) => (
+            <optgroup key={label} label={label}>
+              {drinks.map(r => <option key={r.id} value={r.id}>{dot} {r.name}</option>)}
+            </optgroup>
+          ))}
         </select>
       </label>
     </>
