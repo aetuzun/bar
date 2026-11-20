@@ -93,88 +93,61 @@ nav,
 }
 .guest-island { display: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .guest-header, .guest-header + main {
-    --intro-duration: 10s;
-  }
+  .guest-header, .guest-header + main { --intro-duration: 10s; }
   .guest-island {
-    --cap-width: 124px;
-    --cap-height: 36px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --cap-top: clamp(9px, calc((var(--safe-top) - var(--cap-height)) / 2), 14px);
-    --origin-top: var(--cap-top);
-    --tray-top: max(var(--cap-height), calc(var(--safe-top) - var(--origin-top)));
-    --gutter: max(18px, 5vw, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
-    --open-width: min(416px, calc(100vw - 2 * var(--gutter)));
-    --open-height: calc(var(--tray-top) + 120px);
+    --top: calc(env(safe-area-inset-top, 0px) + 12px);
+    --room: calc(100svh - var(--top) - env(safe-area-inset-bottom, 0px) - 24px);
     position: fixed;
     z-index: 5;
-    top: var(--origin-top);
+    top: var(--top);
     left: 50%;
     transform: translateX(-50%);
+    width: min(416px, calc(100% - 2 * max(18px, env(safe-area-inset-left), env(safe-area-inset-right))));
+    height: min(540px, var(--room), 68svh);
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    overflow: hidden;
-    border-radius: 18px;
+    grid-template: 1.12fr 1fr 1fr / 1.1fr 1fr;
+    gap: 10px;
     pointer-events: none;
-    animation: guest-island var(--intro-duration) cubic-bezier(.42,0,.2,1) both;
+    animation: guest-island var(--intro-duration) both;
   }
-  .guest-island::before {
-    content: "";
-    grid-area: 2 / 1;
+  .scene-panel {
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 24px;
     background: #000;
     pointer-events: auto;
+    animation: scene-open var(--intro-duration) cubic-bezier(.35,0,.18,1) both;
   }
-  /* Sweep the shoulders out below the clock and battery. */
-  .island-crown {
-    grid-area: 1 / 1;
-    align-self: start;
-    width: 100%;
-    height: calc(100% + 1px);
-    fill: #000;
-  }
-  .island-crown path { pointer-events: visiblePainted; }
+  .cocktail-panel { grid-column: span 2; --seed-width: 116px; }
+  .shaker-panel { grid-row: span 2; }
   .guest-pour {
-    position: absolute;
-    top: calc(var(--tray-top) + 12px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(256px, var(--open-width));
+    width: min(256px, 85%, 42svh);
     aspect-ratio: 8 / 3;
     background: url("./guest-shaker.png") left center / 3200% 100% no-repeat;
     image-rendering: pixelated;
-    animation: guest-reveal var(--intro-duration) both,
-      guest-pour calc(var(--intro-duration) * .32) calc(var(--intro-duration) * .22) 2 both;
+    animation: guest-reveal var(--intro-duration) both, guest-pour 3.2s 2.2s 2 both;
   }
-  .guest-header .header-inner { border-color: transparent; }
+  .house-scene { width: 76%; height: 82%; animation: guest-reveal var(--intro-duration) both; }
+  .scene-arm { transform-origin: 31px 34px; }
+  .shake .scene-arm { animation: shake-arm .44s 2.2s 14 steps(3) alternate both; }
+  .toast .scene-arm { animation: toast-arm 3.2s 2.2s 2 steps(6) both; }
+  .flowers .scene-arm { animation: place-flower 3.2s 2.2s 2 steps(7) both; }
   .guest-header .brand { animation: guest-title var(--intro-duration) both; }
 }
-@media (display-mode: browser) and (pointer: coarse) and (orientation: portrait) {
-  .guest-island[data-iphone] {
-    /* If the iPhone browser owns the status row, emerge from its lower edge. */
-    --origin-top: min(var(--cap-top), calc(var(--safe-top) - 30px));
-  }
-}
-@media (prefers-reduced-motion: no-preference) and (max-width: 650px) {
-  .guest-header + main .pagehead {
-    animation: guest-heading var(--intro-duration) both;
-  }
-}
 @keyframes guest-island {
-  0%, 10%, 98%, 100% {
-    width: var(--cap-width);
-    height: var(--cap-height);
-    grid-template-rows: 0px 1fr;
-    border-radius: 18px;
-  }
-  20%, 91% {
-    width: var(--open-width);
-    height: var(--open-height);
-    grid-template-rows: calc(var(--tray-top) + 16px) 1fr;
-    border-radius: 18px 18px 32px 32px;
-  }
-  0%, 98% { opacity: 1; }
+  0%,98% { opacity: 1; background-color: transparent; }
+  20%,90% { background-color: var(--paper); }
   100% { opacity: 0; }
 }
+@keyframes scene-open {
+  0%,8%,98%,100% { clip-path: inset(calc(50% - 12px) calc(50% - var(--seed-width, 48px) / 2) round 20px); }
+  20%,90% { clip-path: inset(0 round 24px); }
+}
+@keyframes shake-arm { from { transform: rotate(-32deg); } to { transform: rotate(-5deg); } }
+@keyframes toast-arm { 0%,100% { transform: rotate(16deg); } 40%,70% { transform: rotate(-25deg); } }
+@keyframes place-flower { 0%,100% { transform: rotate(-18deg); } 48%,68% { transform: rotate(52deg); } }
 @keyframes guest-reveal {
   0%, 20%, 90%, 100% { opacity: 0; }
   22%, 88% { opacity: 1; }

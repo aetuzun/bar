@@ -21,6 +21,7 @@ import {
   type BarState,
 } from "./store";
 import { Glass } from "./Art";
+import { HouseScene } from "./HouseScenes";
 import "./style.css";
 
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
@@ -58,17 +59,16 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
         <button
           type="button"
           className="guest-island"
-          data-iphone={/\biPhone\b/.test(navigator.userAgent) || undefined}
           aria-label="Dismiss cocktail animation"
           onClick={() => setIntro(false)}
           onAnimationEnd={(event) => {
             if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
           }}
         >
-          <svg className="island-crown" viewBox="0 0 360 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-            <path d="M0 64C0 47 18 40 42 33C70 25 85 15 102 8C116 2 126 0 139 0H221C234 0 244 2 258 8C275 15 290 25 318 33C342 40 360 47 360 64Z" />
-          </svg>
-          <span className="guest-pour" aria-hidden="true" />
+          <span className="scene-panel cocktail-panel"><span className="guest-pour" /></span>
+          <span className="scene-panel shaker-panel"><HouseScene scene="shake" /></span>
+          <span className="scene-panel"><HouseScene scene="toast" /></span>
+          <span className="scene-panel"><HouseScene scene="flowers" /></span>
         </button>
       )}
     </header>
