@@ -81,6 +81,17 @@ const nyDate = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 function Footer({ message = defaultFooter }: { message?: string }) {
+  const footerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      document.documentElement.classList.toggle("footer-visible", entry.isIntersecting);
+    });
+    if (footerRef.current) observer.observe(footerRef.current);
+    return () => {
+      observer.disconnect();
+      document.documentElement.classList.remove("footer-visible");
+    };
+  }, []);
   const [date, setDate] = useState(() => nyDate.format(Date.now()));
   useEffect(() => {
     const tick = () => setDate(nyDate.format(Date.now()));
@@ -92,7 +103,7 @@ function Footer({ message = defaultFooter }: { message?: string }) {
     };
   }, []);
   return (
-    <footer>
+    <footer ref={footerRef}>
       <div className="foot-inner">
         <span>{message}</span>
         <time>{date}</time>
@@ -508,6 +519,10 @@ function Menu({
   toggle: (id: string) => void;
 }) {
   const [notice, setNotice] = useState("");
+  const draftUrl = guestUrl(publishSnapshot(state));
+  const published = !!state.published && guestUrl(state.published) === draftUrl;
+  const [copiedUrl, setCopiedUrl] = useState("");
+  useEffect(() => { setCopiedUrl(""); setNotice(""); }, [draftUrl]);
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
   const { visible, filters } = useMenuFilter(
     state.draft,
@@ -526,9 +541,10 @@ function Menu({
     setNotice("");
   }
   async function copy() {
-    if (!state.published) return;
+    if (!state.published || !published) return;
     try {
       await navigator.clipboard.writeText(guestUrl(state.published));
+      setCopiedUrl(draftUrl);
       setNotice("Guest link copied.");
     } catch {
       setNotice("Copy failed. Allow clipboard access and try again.");
@@ -557,9 +573,9 @@ function Menu({
               {!result.ready && <Availability result={result} />}
               <div className="actions">
                 {[
-                  [-1, "up", "↑"],
-                  [1, "down", "↓"],
-                ].map(([offset, label, icon]) => (
+                  [-1, "up"],
+                  [1, "down"],
+                ].map(([offset, label]) => (
                   <button
                     key={label}
                     disabled={
@@ -569,7 +585,7 @@ function Menu({
                     aria-label={"Move " + r.name + " " + label}
                     onClick={() => move(index, Number(offset))}
                   >
-                    {icon}
+                    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: offset === 1 ? "rotate(180deg)" : undefined }}><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </button>
                 ))}
                 <button
@@ -658,6 +674,7 @@ function Menu({
         <div className="actions">
           <button
             className="menu-toggle"
+            data-complete={published}
             disabled={unavailable || !state.draft.length}
             onClick={() => {
               if (unavailable || !state.draft.length) return;
@@ -673,7 +690,8 @@ function Menu({
           </button>
           <button
             className="menu-toggle"
-            disabled={!state.published}
+            data-complete={published && copiedUrl === draftUrl}
+            disabled={!published}
             onClick={copy}
           >
             <span aria-hidden="true" />
@@ -686,7 +704,7 @@ function Menu({
             publish.
           </p>
         )}
-        <p role="status">{notice}</p>
+        <p role="status" className={notice.startsWith("Copy failed") ? "feedback" : "visually-hidden"}>{notice}</p>
       </section>
     </>
   );

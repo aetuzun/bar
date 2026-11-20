@@ -763,3 +763,19 @@ dialog .actions {
 .title-field:first-of-type {
   margin-top: 24px;
 }
+
+/* Keep the page canvas black below the footer, including bottom overscroll. */
+html.footer-visible { background: linear-gradient(to bottom, var(--paper) 50%, #000 50%) fixed; }
+body { background: var(--paper); }
+#root { min-height: 100dvh; }
+footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100vmax); }
+.curator .actions button { width: 30px; min-width: 30px; display: grid; place-items: center; font-weight: 800; }
+.title-field > span, .title-field input, .title-field select {
+  font-family: inherit; font-size: 1rem; text-transform: none; letter-spacing: -.02em;
+}
+.title-field > span { font-weight: 600; }
+.title-field input, .title-field select { font-weight: 400; min-width: 0; width: 100%; }
+.publish .menu-toggle[data-complete="true"] span { background: var(--ink); border-style: solid; }
+.publish .menu-toggle:disabled span { border-style: solid; }
+.visually-hidden { position: absolute; width: 1px !important; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
