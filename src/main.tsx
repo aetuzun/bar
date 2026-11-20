@@ -21,7 +21,6 @@ import {
   type BarState,
 } from "./store";
 import { Glass } from "./Art";
-import { HouseScene } from "./HouseScenes";
 import "./style.css";
 
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
@@ -65,10 +64,7 @@ function Header({ route, guest = false }: { route: string; guest?: boolean }) {
             if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
           }}
         >
-          <span className="scene-panel cocktail-panel"><span className="guest-pour" /></span>
-          <span className="scene-panel shaker-panel"><HouseScene scene="shake" /></span>
-          <span className="scene-panel"><HouseScene scene="toast" /></span>
-          <span className="scene-panel"><HouseScene scene="flowers" /></span>
+          <span className="guest-pour" aria-hidden="true" />
         </button>
       )}
     </header>

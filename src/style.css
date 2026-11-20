@@ -96,32 +96,18 @@ nav,
   .guest-header, .guest-header + main { --intro-duration: 10s; }
   .guest-island {
     --top: calc(env(safe-area-inset-top, 0px) + 12px);
-    --room: calc(100svh - var(--top) - env(safe-area-inset-bottom, 0px) - 24px);
     position: fixed;
     z-index: 5;
     top: var(--top);
     left: 50%;
     transform: translateX(-50%);
     width: min(416px, calc(100% - 2 * max(18px, env(safe-area-inset-left), env(safe-area-inset-right))));
-    height: min(540px, var(--room), 68svh);
-    display: grid;
-    grid-template: 1.12fr 1fr 1fr / 1.1fr 1fr;
-    gap: 10px;
-    pointer-events: none;
-    animation: guest-island var(--intro-duration) both;
-  }
-  .scene-panel {
+    height: min(180px, 22svh);
+    background: #000;
     display: grid;
     place-items: center;
-    min-height: 0;
-    overflow: hidden;
-    border-radius: 24px;
-    background: #000;
-    pointer-events: auto;
-    animation: scene-open var(--intro-duration) cubic-bezier(.35,0,.18,1) both;
+    animation: guest-island var(--intro-duration) cubic-bezier(.4,0,.2,1) both;
   }
-  .cocktail-panel { grid-column: span 2; --seed-width: 116px; }
-  .shaker-panel { grid-row: span 2; }
   .guest-pour {
     width: min(256px, 85%, 42svh);
     aspect-ratio: 8 / 3;
@@ -129,28 +115,17 @@ nav,
     image-rendering: pixelated;
     animation: guest-reveal var(--intro-duration) both, guest-pour 3.2s 2.2s 2 both;
   }
-  .house-scene { width: 76%; height: 82%; animation: guest-reveal var(--intro-duration) both; }
-  .scene-arm { transform-origin: 31px 34px; }
-  .shake .scene-arm { animation: shake-arm .44s 2.2s 14 steps(3) alternate both; }
-  .toast .scene-arm { animation: toast-arm 3.2s 2.2s 2 steps(6) both; }
-  .flowers .scene-arm { animation: place-flower 3.2s 2.2s 2 steps(7) both; }
   .guest-header .brand { animation: guest-title var(--intro-duration) both; }
 }
 @keyframes guest-island {
-  0%,98% { opacity: 1; background-color: transparent; }
-  20%,90% { background-color: var(--paper); }
-  100% { opacity: 0; }
+  0%, 3%, 98%, 100% { clip-path: inset(0 calc(50% - 58px) calc(100% - 28px) round 16px); }
+  18%, 91% { clip-path: inset(0 round 24px); }
+  0%, 100% { opacity: 0; }
+  4%, 98% { opacity: 1; }
 }
-@keyframes scene-open {
-  0%,8%,98%,100% { clip-path: inset(calc(50% - 12px) calc(50% - var(--seed-width, 48px) / 2) round 20px); }
-  20%,90% { clip-path: inset(0 round 24px); }
-}
-@keyframes shake-arm { from { transform: rotate(-32deg); } to { transform: rotate(-5deg); } }
-@keyframes toast-arm { 0%,100% { transform: rotate(16deg); } 40%,70% { transform: rotate(-25deg); } }
-@keyframes place-flower { 0%,100% { transform: rotate(-18deg); } 48%,68% { transform: rotate(52deg); } }
 @keyframes guest-reveal {
-  0%, 20%, 90%, 100% { opacity: 0; }
-  22%, 88% { opacity: 1; }
+  0%, 18%, 91%, 100% { opacity: 0; transform: translateY(4px); }
+  22%, 87% { opacity: 1; transform: translateY(0); }
 }
 @keyframes guest-title {
   0%, 98% { opacity: 0; }
