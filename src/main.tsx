@@ -23,11 +23,16 @@ import {
   type BarState,
 } from "./store";
 import { Glass } from "./Art";
+import { ControlIcon, Picker } from "./Picker";
 import "./style.css";
 
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
+const optionsOf = (labels: readonly string[]) => labels.map(label => ({ value: label, label }));
+function GuestScene({ scene }: { scene: Scene }) {
+  return <span className={"guest-sprite " + scene} aria-hidden="true" />;
+}
 function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
   const [intro, setIntro] = useState(() => guest && !matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
@@ -42,6 +47,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
     <header className={intro ? "guest-header" : undefined}>
       <div className="header-inner">
         <div className="brand">The Home Bar</div>
+        {guest && <span className="guest-scene"><GuestScene scene={scene} /></span>}
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
@@ -66,7 +72,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
             if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
           }}
         >
-          <span className={scene === "shaker" ? "guest-pour" : "people-sprite " + scene} aria-hidden="true" />
+          <GuestScene scene={scene} />
         </button>
       )}
     </header>
@@ -121,6 +127,7 @@ function Editor({
   const [form, setForm] = useState(item);
   const [custom, setCustom] = useState(!!item.kind && !ingredientKinds.includes(item.kind));
   const dialog = useRef<HTMLDialogElement>(null);
+  const [missingKind, setMissingKind] = useState(false);
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -136,8 +143,12 @@ function Editor({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (form.name.trim() && form.kind.trim())
-            save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
+          if (!form.kind.trim()) {
+            setMissingKind(true);
+            dialog.current?.querySelector<HTMLButtonElement>("#ingredient-type")?.focus();
+            return;
+          }
+          if (form.name.trim()) save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
         }}
       >
         <h2 tabIndex={-1} autoFocus>{item.name ? "Edit item" : "Add item"}</h2>
@@ -154,47 +165,35 @@ function Editor({
             }}
           />
         </label>
-        <label>
-          Category
-          <select
-            aria-label="Category"
-            value={form.group}
-            onChange={(e) => field("group", e.target.value as Item["group"])}
-          >
-            {groups.map((g) => (
-              <option key={g}>{g}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Ingredient type
-          <select aria-label="Ingredient type" required value={custom ? "__custom" : form.kind} onChange={e => {
-            const kind = e.target.value;
-            setCustom(kind === "__custom");
-            setForm({ ...form, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
-          }}>
-            <option value="" disabled>Choose a type…</option>
-            {groups.map(group => <optgroup key={group} label={group}>
-              {ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}
-            </optgroup>)}
-            <option value="__custom">Custom type…</option>
-          </select>
-        </label>
+        <div className="editor-field">
+          <span>Category</span>
+          <Picker label="Category" value={form.group} groups={[{ options: optionsOf(groups) }]}
+            choose={value => field("group", value as Item["group"])} />
+        </div>
+        <div className="editor-field">
+          <span>Ingredient type</span>
+          <Picker id="ingredient-type" label="Ingredient type" placeholder="Choose a type…"
+            invalid={missingKind && !form.kind.trim()} value={custom ? "__custom" : form.kind}
+            groups={[
+              ...groups.map(group => ({ label: group, options: optionsOf(ingredientKinds.filter(kind => kindGroup(kind) === group)) })),
+              { options: [{ value: "__custom", label: "Custom type…" }] },
+            ]}
+            choose={kind => {
+              const isCustom = kind === "__custom";
+              setCustom(isCustom);
+              setMissingKind(false);
+              setForm({ ...form, kind: isCustom ? "" : kind, group: isCustom ? form.group : kindGroup(kind) });
+            }} />
+          {missingKind && !form.kind.trim() && <p role="alert" className="field-error">Choose an ingredient type.</p>}
+        </div>
         {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
         {(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
           <label>Opened on (optional)<input type="date" value={form.openedOn || ""} onChange={e => field("openedOn", e.target.value)} /></label>}
-        <label>
-          Status
-          <select
-            aria-label="Status"
-            value={form.status}
-            onChange={(e) => field("status", e.target.value as Item["status"])}
-          >
-            {statuses.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
+        <div className="editor-field">
+          <span>Status</span>
+          <Picker label="Status" value={form.status} groups={[{ options: optionsOf(statuses) }]}
+            choose={value => field("status", value as Item["status"])} />
+        </div>
 
         <div className="actions">
           <button type="button" onClick={close}>
@@ -206,25 +205,6 @@ function Editor({
     </dialog>
   );
 }
-function AddPicker({ label, placeholder, choose, children }: {
-  label: string;
-  placeholder: string;
-  choose: (id: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="filter-add" title={label}>
-      <span aria-hidden="true">+</span>
-      <select aria-label={label} value="" onChange={event => {
-        if (event.target.value) choose(event.target.value);
-      }}>
-        <option value="" disabled>{placeholder}</option>
-        {children}
-      </select>
-    </label>
-  );
-}
-
 function Bar({
   state,
   update,
@@ -266,7 +246,7 @@ function Bar({
             })
           }
         >
-          <span aria-hidden="true">+</span>
+          <ControlIcon kind="add" />
         </button>
         </div>
         <div className="inventory-list">
@@ -468,16 +448,14 @@ function Recipes({
           </button>
         ))}
       </div>
-        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
-          setOrder([...state.recipeOrder, id]);
-          setFilter("All");
-        }}>
-          {choices.filter(group => group.drinks.length > 0).map(({ label, drinks }) => (
-            <optgroup key={label} label={label}>
-              {drinks.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </optgroup>
-          ))}
-        </AddPicker>
+        <Picker add label="Add cocktail" placeholder="All cocktails added"
+          groups={choices.map(({ label, drinks }) => ({
+            label, options: drinks.map(recipe => ({ value: recipe.id, label: recipe.name })),
+          }))}
+          choose={id => {
+            setOrder([...state.recipeOrder, id]);
+            setFilter("All");
+          }} />
       </div>
       <CardList order={state.recipeOrder} visible={list.map(r => r.id)} save={setOrder}>
         {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
@@ -605,39 +583,28 @@ function Menu({
       </div>
       <div className="filter-bar">
         {filters || <div className="filters"><button aria-pressed="true">All</button></div>}
-        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pour…" choose={id => {
-          toggle(id);
-          resetFilter();
-        }}>
-          <optgroup label="Cocktails">
-            {recipes.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
-              .map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
-          </optgroup>
-          {["Whiskies", "Wine & sparkling"].map((group) => (
-            <optgroup key={group} label={group}>
-              {state.items
-                .filter((item) => eligible(item) && item.group === group)
-                .map((item) => {
-                  const id = "pour:" + item.id,
-                    selected = state.draft.includes(id);
-                  return (
-                    <option
-                      value={id}
-                      key={id}
-                      disabled={selected || !inStock(item)}
-                    >
-                      {item.name}
-                      {selected
-                        ? " · On menu"
-                        : !inStock(item)
-                          ? " · " + item.status
-                          : ""}
-                    </option>
-                  );
-                })}
-            </optgroup>
-          ))}
-        </AddPicker>
+        <Picker add label="Add to menu" placeholder="No available cocktails or pours"
+          groups={[
+            {
+              label: "Cocktails",
+              options: recipes.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
+                .map(recipe => ({ value: recipe.id, label: recipe.name })),
+            },
+            ...["Whiskies", "Wine & sparkling"].map(group => ({
+              label: group,
+              options: state.items.filter(item => eligible(item) && item.group === group).map(item => {
+                const value = "pour:" + item.id;
+                const selected = state.draft.includes(value);
+                const available = inStock(item);
+                const label = item.name + (selected ? " · On menu" : available ? "" : " · " + item.status);
+                return { value, label, disabled: selected || !available };
+              }),
+            })),
+          ]}
+          choose={id => {
+            toggle(id);
+            resetFilter();
+          }} />
       </div>
       <CardList order={state.draft} visible={visible} save={draft => update({ ...state, draft })}>
       {visible.map(id => {
@@ -667,11 +634,12 @@ function Menu({
         </p>
       )}
 
-      <label className="title-field"><span>Guest animation</span>
-        <select value={state.scene || "shaker"} onChange={e => update({ ...state, scene: e.target.value as Scene })}>
-          {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-      </label>
+      <div className="title-field">
+        <span>Guest animation</span>
+        <Picker label="Guest animation" value={state.scene || "shaker"}
+          groups={[{ options: Object.entries(animations).map(([value, label]) => ({ value, label })) }]}
+          choose={value => update({ ...state, scene: value as Scene })} />
+      </div>
       <label className="title-field">
         <span>Menu title</span>
         <input
