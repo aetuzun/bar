@@ -25,17 +25,17 @@ export function CardList({ order, visible, save, children }: {
 export function SortCard({ id, name, className, remove, children }: {
   id: string; name: string; className: string; remove: () => void; children: ReactNode;
 }) {
-  const {setNodeRef, setActivatorNodeRef, attributes, listeners, transform, transition, isDragging} = useSortable({id});
+  const {setNodeRef, attributes, listeners, transform, transition, isDragging} = useSortable({id});
   const interactive = (target: EventTarget) => target instanceof Element && !!target.closest("button, a, input, select, textarea");
-  return <article ref={setNodeRef} className={className + " sort-card"} data-dragging={isDragging}
+  return <article {...attributes} role="article" aria-label={"Reorder " + name}
+    ref={setNodeRef} onKeyDown={event => {
+      if (event.target === event.currentTarget) listeners?.onKeyDown?.(event);
+    }} className={className + " sort-card"} data-dragging={isDragging}
     style={{transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined, transition}}
     onMouseDown={e => { if (!interactive(e.target)) listeners?.onMouseDown?.(e); }}
     onTouchStart={e => { if (!interactive(e.target)) listeners?.onTouchStart?.(e); }}
     onDragStart={e => e.preventDefault()}>
     <div className="actions order-tools">
-      <button ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={"Reorder " + name} title="Drag to reorder, or press Space and use arrow keys">
-        <svg aria-hidden="true" width="14" height="12" viewBox="0 0 14 12"><path d="M1 4h12M1 8h12" stroke="currentColor" strokeWidth="2"/></svg>
-      </button>
       <button aria-label={"Remove " + name} onClick={remove}>×</button>
     </div>{children}
   </article>;

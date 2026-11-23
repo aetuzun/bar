@@ -1,7 +1,8 @@
 :root {
   --indicator: 14px;
   --nav-size: 1.06rem;
-  --paper: #f7f5f0;
+  --paper: #fff;
+  --card: #f6f5f3;
   --ink: #111;
   --muted: #5e5b55;
   --line: #c6c4bc;
@@ -280,7 +281,7 @@ nav a[aria-current]:after,
   border-radius: 5px;
   display: grid;
   place-items: center;
-  background: #ebe8e2;
+  background: var(--card);
 }
 .recipe .drink-art {
   grid-area: art;
@@ -682,7 +683,7 @@ dialog .actions {
 
 .recipe,
 .menurow {
-  background: #ebe8e2;
+  background: var(--card);
   border: 0;
   border-radius: 6px;
   padding: clamp(14px, 2vw, 26px);
@@ -761,7 +762,7 @@ footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100v
 .title-field select { appearance: auto; min-height: 34px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 18px; background-color: var(--paper); color: var(--ink); }
 .title-field input { min-height: 32px; padding: 3px 2px 1px; }
 .title-field > span { font-weight: 400; }
-.shopping-group { border: 0; background: #ebe8e2; border-radius: 6px; padding: clamp(14px,2vw,26px); }
+.shopping-group { border: 0; background: var(--card); border-radius: 6px; padding: clamp(14px,2vw,26px); }
 .group:has(+ .shopping-group) { border-bottom: 0; }
 .glass { filter: drop-shadow(0 0 .7px rgb(78 72 62 / 45%)) drop-shadow(0 1px 1px rgb(78 72 62 / 10%)); }
 .inventory .storage-note { margin-top: 10px; }
@@ -792,9 +793,53 @@ dialog h2:focus { outline: none; }
 .sort-card { position: relative; cursor: grab; }
 .sort-card img { -webkit-touch-callout: none; user-select: none; }
 .sort-card[data-dragging="true"] { z-index: 5; cursor: grabbing; box-shadow: 0 8px 24px #0002; }
-.order-tools button:first-child { cursor: grab; }
+
 .publish .actions { flex-wrap: wrap; }
 .guest-qr { flex-basis: 100%; grid-column: 1 / -1; margin: 12px 0; }
 .guest-qr svg { display: block; max-width: 100%; height: auto; }
 .guest-qr figcaption { margin-top: 6px; }
+.filter-bar {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+.filter-bar .filters {
+  border-bottom: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-inline-end: 66px;
+}
+.filter-bar .filters::-webkit-scrollbar { display: none; }
+.filter-add {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  width: 64px;
+  display: grid;
+  place-items: center end;
+  padding-inline-end: 13px;
+  background: linear-gradient(to right, transparent, var(--paper) 32%);
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+.filter-add span { pointer-events: none; }
+.filter-add select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  font-size: 16px;
+  cursor: pointer;
+}
+.filter-add:focus-visible, .filter-add:has(select:focus-visible), .sort-card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.animated-glass { display: grid; place-items: center; }
+.animated-glass svg { display: block; width: 100%; height: 100%; max-height: inherit; }
+.animated-glass :is(.art-ice, .art-garnish) { transform-box: fill-box; transform-origin: center; }
+.art-bubble-extra { opacity: 0; }
 

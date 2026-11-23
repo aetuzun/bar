@@ -206,6 +206,25 @@ function Editor({
     </dialog>
   );
 }
+function AddPicker({ label, placeholder, choose, children }: {
+  label: string;
+  placeholder: string;
+  choose: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="filter-add" title={label}>
+      <span aria-hidden="true">+</span>
+      <select aria-label={label} value="" onChange={event => {
+        if (event.target.value) choose(event.target.value);
+      }}>
+        <option value="" disabled>{placeholder}</option>
+        {children}
+      </select>
+    </label>
+  );
+}
+
 function Bar({
   state,
   update,
@@ -221,6 +240,7 @@ function Bar({
         <h1>Bar</h1>
       </div>
       <section className="inventory">
+        <div className="filter-bar">
         <div className="filters">
           {["All", ...groups, "Shopping list"].map((g) => (
             <button
@@ -231,6 +251,23 @@ function Bar({
               {g}
             </button>
           ))}
+        </div>
+        <button
+          className="filter-add"
+          aria-label="Add item"
+          title="Add item"
+          onClick={() =>
+            setEdit({
+              id: crypto.randomUUID(),
+              name: "",
+              group: groups.find((g) => g === filter) || "Spirits",
+              kind: "",
+              status: filter === "Shopping list" ? "Planned" : "Available",
+            })
+          }
+        >
+          <span aria-hidden="true">+</span>
+        </button>
         </div>
         <div className="inventory-list">
           {[...groups, "Shopping list"].map((g) => {
@@ -267,20 +304,6 @@ function Bar({
             );
           })}
         </div>
-        <button
-          className="text-action add"
-          onClick={() =>
-            setEdit({
-              id: crypto.randomUUID(),
-              name: "",
-              group: groups.find((g) => g === filter) || "Spirits",
-              kind: "",
-              status: filter === "Shopping list" ? "Planned" : "Available",
-            })
-          }
-        >
-          Add item
-        </button>
         <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
       </section>
       {edit && (
@@ -428,6 +451,7 @@ function Recipes({
       <div className="pagehead">
         <h1>Recipes</h1>
       </div>
+      <div className="filter-bar">
       <div className="filters">
         {[
           "All",
@@ -444,23 +468,23 @@ function Recipes({
           </button>
         ))}
       </div>
-      <CardList order={state.recipeOrder} visible={list.map(r => r.id)} save={setOrder}>
-        {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
-          remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
-      </CardList>
-      {!list.length && <p>{state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
-      <label className="title-field"><span>Add cocktail</span>
-        <select value="" disabled={!remaining.length} onChange={e => {
-          if (e.target.value) { setOrder([...state.recipeOrder, e.target.value]); setFilter("All"); }
+        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
+          setOrder([...state.recipeOrder, id]);
+          setFilter("All");
         }}>
-          <option value="">{remaining.length ? "Choose a cocktail…" : "All cocktails added"}</option>
           {choices.filter(group => group.drinks.length > 0).map(({ label, drinks }) => (
             <optgroup key={label} label={label}>
               {drinks.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </optgroup>
           ))}
-        </select>
-      </label>
+        </AddPicker>
+      </div>
+      <CardList order={state.recipeOrder} visible={list.map(r => r.id)} save={setOrder}>
+        {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
+          remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
+      </CardList>
+      {!list.length && <p>{state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+
     </>
   );
 }
@@ -501,7 +525,7 @@ function useMenuFilter(ids: string[], category: (id: string) => string) {
         ))}
       </div>
     ) : null;
-  return { visible, filters };
+  return { visible, filters, resetFilter: () => setChoice("All") };
 }
 function pourCategory(style: Pour["style"]) {
   return style === "Whisky" ? "Whisky pours" : "Wine";
@@ -556,7 +580,7 @@ function Menu({
   const [copiedUrl, setCopiedUrl] = useState("");
   useEffect(() => { setCopiedUrl(""); setQrUrl(""); setNotice(""); }, [draftUrl]);
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
-  const { visible, filters } = useMenuFilter(
+  const { visible, filters, resetFilter } = useMenuFilter(
     state.draft,
     (id) => families[id] || pourCategory(describe(bottle(id)!).style),
   );
@@ -579,7 +603,42 @@ function Menu({
       <div className="pagehead">
         <h1>Menu</h1>
       </div>
-      {filters}{" "}
+      <div className="filter-bar">
+        {filters || <div className="filters"><button aria-pressed="true">All</button></div>}
+        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pour…" choose={id => {
+          toggle(id);
+          resetFilter();
+        }}>
+          <optgroup label="Cocktails">
+            {recipes.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
+              .map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
+          </optgroup>
+          {["Whiskies", "Wine & sparkling"].map((group) => (
+            <optgroup key={group} label={group}>
+              {state.items
+                .filter((item) => eligible(item) && item.group === group)
+                .map((item) => {
+                  const id = "pour:" + item.id,
+                    selected = state.draft.includes(id);
+                  return (
+                    <option
+                      value={id}
+                      key={id}
+                      disabled={selected || !inStock(item)}
+                    >
+                      {item.name}
+                      {selected
+                        ? " · On menu"
+                        : !inStock(item)
+                          ? " · " + item.status
+                          : ""}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          ))}
+        </AddPicker>
+      </div>
       <CardList order={state.draft} visible={visible} save={draft => update({ ...state, draft })}>
       {visible.map(id => {
         const item = bottle(id),
@@ -607,45 +666,7 @@ function Menu({
           Your selection is empty. <a href="#recipes">Browse recipes</a>
         </p>
       )}
-      <label className="title-field pour-picker">
-        <span>Whisky &amp; wine</span>
-        <select
-          aria-label="Add whisky or wine to menu"
-          value=""
-          onChange={(e) => {
-            if (e.target.value) {
-              toggle(e.target.value);
-              setNotice("");
-            }
-          }}
-        >
-          <option value="">Choose a pour…</option>
-          {["Whiskies", "Wine & sparkling"].map((group) => (
-            <optgroup key={group} label={group}>
-              {state.items
-                .filter((item) => eligible(item) && item.group === group)
-                .map((item) => {
-                  const id = "pour:" + item.id,
-                    selected = state.draft.includes(id);
-                  return (
-                    <option
-                      value={id}
-                      key={id}
-                      disabled={selected || !inStock(item)}
-                    >
-                      {item.name}
-                      {selected
-                        ? " · On menu"
-                        : !inStock(item)
-                          ? " · " + item.status
-                          : ""}
-                    </option>
-                  );
-                })}
-            </optgroup>
-          ))}
-        </select>
-      </label>
+
       <label className="title-field"><span>Guest animation</span>
         <select value={state.scene || "shaker"} onChange={e => update({ ...state, scene: e.target.value as Scene })}>
           {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
