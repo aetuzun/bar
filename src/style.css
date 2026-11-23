@@ -763,7 +763,6 @@ footer { box-shadow: 0 100vmax 0 100vmax #000; clip-path: inset(0 -100vmax -100v
   background: var(--card);
   color: var(--ink);
 }
-.card-remove svg { pointer-events: none; }
 .recipe-heading { padding-inline-end: 44px; }
 .recipe-tools .menu-toggle { flex: none; white-space: nowrap; }
 .recipe-tools .availability, .recipe-tools .menu-toggle { line-height: 1.3; font-family: inherit; font-size: 1rem; font-weight: 400; letter-spacing: normal; }
@@ -832,15 +831,15 @@ dialog h2:focus { outline: none; }
   background: linear-gradient(to right, transparent, var(--paper) 32%);
   cursor: pointer;
 }
-.filter-add > span {
+:is(.filter-add, .card-remove) > span {
   position: relative;
   width: 34px;
   height: 34px;
   pointer-events: none;
   font-size: 0;
 }
-.filter-add > span::before,
-.filter-add > span::after {
+:is(.filter-add, .card-remove) > span::before,
+:is(.filter-add, .card-remove) > span::after {
   position: absolute;
   inset: 50% auto auto 50%;
   width: 14px;
@@ -849,7 +848,8 @@ dialog h2:focus { outline: none; }
   content: "";
   transform: translate(-50%, -50%);
 }
-.filter-add > span::after { transform: translate(-50%, -50%) rotate(90deg); }
+:is(.filter-add, .card-remove) > span::after { transform: translate(-50%, -50%) rotate(90deg); }
+.card-remove > span { transform: rotate(45deg); }
 
 .filter-add:focus-visible, .sort-card:focus-visible {
   outline: 2px solid var(--ink);
@@ -859,6 +859,26 @@ dialog h2:focus { outline: none; }
 .animated-glass svg { display: block; width: 100%; height: 100%; max-height: inherit; }
 .animated-glass :is(.art-ice, .art-garnish, .art-pour) { transform-box: fill-box; transform-origin: center; }
 .art-bubble-extra { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .animated-glass .art-bubble { animation: bubble-rise 3.2s ease-in-out infinite; }
+  .animated-glass .art-bubble:nth-of-type(3n + 1) { animation-delay: -1.1s; }
+  .animated-glass .art-bubble:nth-of-type(3n + 2) { animation-delay: -2.2s; }
+  .animated-glass :is(.art-ice, .art-garnish, .art-pour) {
+    animation: drink-sway 4s ease-in-out infinite;
+  }
+  .animated-glass .art-ice { --drink-lift: -3px; --drink-turn: 4deg; }
+  .animated-glass .art-garnish { --drink-turn: -5deg; }
+  .animated-glass .art-pour { --drink-turn: 1deg; }
+}
+@keyframes bubble-rise {
+  0%, 100% { translate: 0 0; opacity: 0; }
+  28% { opacity: .8; }
+  82%, 99% { translate: 1px -23px; opacity: 0; }
+}
+@keyframes drink-sway {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  50% { translate: 0 var(--drink-lift, 0px); rotate: var(--drink-turn); }
+}
 .site-header {
   position: sticky;
   inset-block-start: 0;
