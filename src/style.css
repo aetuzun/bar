@@ -711,7 +711,7 @@ dialog .actions {
 .curator .actions {
   gap: 0;
 }
-.title-field:first-of-type {
+.guest-animation-field {
   margin-top: 24px;
 }
 

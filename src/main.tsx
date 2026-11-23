@@ -680,7 +680,7 @@ function Menu({
         </p>
       )}
 
-      <div className="title-field"><span>Guest animation</span>
+      <div className="title-field guest-animation-field"><span>Guest animation</span>
         <Dropdown label="Guest animation" value={state.scene || "shaker"} onChange={scene => update({ ...state, scene: scene as Scene })}>
           {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </Dropdown>
@@ -721,7 +721,7 @@ function Menu({
                 ...state,
                 published: publishSnapshot(state),
               });
-              setNotice("Published. Copy the guest link to share.");
+              setNotice("Published. Copy the link or show the QR code to share.");
             }}
           >
             <span aria-hidden="true" />
@@ -734,7 +734,7 @@ function Menu({
             onClick={copy}
           >
             <span aria-hidden="true" />
-            Copy guest link
+            Copy link
           </button>
           <button className="menu-toggle" disabled={!published} aria-expanded={published && qrUrl === draftUrl}
             onClick={() => setQrUrl(qrUrl === draftUrl ? "" : draftUrl)}>
@@ -743,7 +743,7 @@ function Menu({
         </div>
         {published && qrUrl === draftUrl && (new TextEncoder().encode(qrUrl).length <= 2953
           ? <figure className="guest-qr"><QRCodeSVG value={qrUrl} level="L" size={320} marginSize={4} title="Scan to open the published guest menu" /><figcaption>Scan for the guest menu</figcaption></figure>
-          : <p>This menu link is too long for a QR code. Use Copy guest link to share it.</p>)}
+          : <p>This menu link is too long for a QR code. Use Copy link to share it.</p>)}
         {unavailable && (
           <p className="feedback">
             Confirm missing ingredients in Bar or remove unavailable drinks to
