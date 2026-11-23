@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ControlIcon } from "./Picker";
 import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
@@ -36,7 +37,7 @@ export function SortCard({ id, name, className, remove, children }: {
     onTouchStart={e => { if (!interactive(e.target)) listeners?.onTouchStart?.(e); }}
     onDragStart={e => e.preventDefault()}>
     <div className="actions order-tools">
-      <button aria-label={"Remove " + name} onClick={remove}>×</button>
+      <button aria-label={"Remove " + name} onClick={remove}><ControlIcon kind="remove" /></button>
     </div>{children}
   </article>;
 }
