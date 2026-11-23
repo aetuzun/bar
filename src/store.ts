@@ -3,7 +3,6 @@ import {
   groups,
   recipes,
   seed,
-  availability,
   type Group,
   type Item,
 } from "./data";
@@ -131,14 +130,8 @@ export const storage = {
   load(): BarState {
     const initial = {
       items: seed,
-      recipeOrder: recipes.slice(0, 8).map(r => r.id),
-      draft: demoMenu.filter(
-        (id) =>
-          availability(
-            recipes.find((r) => r.id === id)!,
-            seed,
-          ).ready,
-      ),
+      recipeOrder: ["hugo", "negroni", "martini", "old-fashioned", "margarita", "daiquiri", "aperol-spritz", "whiskey-sour"],
+      draft: ["hugo", "negroni", "old-fashioned", "pour:hibiki", "pour:white", "pour:red"],
       title: "Menu",
       footer: defaultFooter,
       published: null,

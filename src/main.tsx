@@ -1,3 +1,5 @@
+import { CardList, SortCard } from "./CardOrder";
+import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -325,43 +327,13 @@ function Availability({
     </p>
   );
 }
-function OrderTools({name, index, count, move, remove}: {
-  name: string; index: number; count: number; move: (offset: number) => void; remove: () => void;
-}) {
-  return (
-              <div className="actions order-tools">
-                {[
-                  [-1, "up"],
-                  [1, "down"],
-                ].map(([offset, label]) => (
-                  <button
-                    key={label}
-                    disabled={
-                      index + Number(offset) < 0 ||
-                      index + Number(offset) >= count
-                    }
-                    aria-label={"Move " + name + " " + label}
-                    onClick={() => move(Number(offset))}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: offset === 1 ? "rotate(180deg)" : undefined }}><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  </button>
-                ))}
-                <button
-                  aria-label={"Remove " + name}
-                  onClick={remove}
-                >
-                  ×
-                </button>
-              </div>
-  );
-}
 function RecipeEntry({
-  r, controls,
+  r, remove,
   state,
   toggle, shop,
 }: {
   shop: (recipeId: string, kinds: string[], remove: boolean) => void;
-  r: Recipe; controls: React.ReactNode;
+  r: Recipe; remove: () => void;
   state: BarState;
   toggle: (id: string) => void;
 }) {
@@ -369,8 +341,7 @@ function RecipeEntry({
     selected = state.draft.includes(r.id);
   const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
   return (
-    <article className="recipe">
-      {controls}
+    <SortCard id={r.id} name={r.name} remove={remove} className="recipe">
       <div className="drink-art">
         <Glass recipe={r} />
       </div>
@@ -421,7 +392,7 @@ function RecipeEntry({
           </button>
         )}
       </div>
-    </article>
+    </SortCard>
   );
 }
 function Recipes({
@@ -452,12 +423,6 @@ function Recipes({
     const { missing } = availability(recipe, state.items);
     choices[Math.min(missing.length, 2)].drinks.push(recipe);
   }
-  function move(index: number, offset: number) {
-    const order = [...state.recipeOrder];
-    const a = order.indexOf(list[index].id), b = order.indexOf(list[index + offset].id);
-    [order[a], order[b]] = [order[b], order[a]];
-    setOrder(order);
-  }
   return (
     <>
       <div className="pagehead">
@@ -479,10 +444,10 @@ function Recipes({
           </button>
         ))}
       </div>
-      {list.map((r, index) => (
-        <RecipeEntry controls={<OrderTools name={r.name} index={index} count={list.length}
-          move={offset => move(index, offset)} remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />} shop={shop} key={r.id} r={r} state={state} toggle={toggle} />
-      ))}
+      <CardList order={state.recipeOrder} visible={list.map(r => r.id)} save={setOrder}>
+        {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
+          remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
+      </CardList>
       {!list.length && <p>{state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
       <label className="title-field"><span>Add cocktail</span>
         <select value="" disabled={!remaining.length} onChange={e => {
@@ -587,8 +552,9 @@ function Menu({
   const [notice, setNotice] = useState("");
   const draftUrl = guestUrl(publishSnapshot(state));
   const published = !!state.published && guestUrl(state.published) === draftUrl;
+  const [qrUrl, setQrUrl] = useState("");
   const [copiedUrl, setCopiedUrl] = useState("");
-  useEffect(() => { setCopiedUrl(""); setNotice(""); }, [draftUrl]);
+  useEffect(() => { setCopiedUrl(""); setQrUrl(""); setNotice(""); }, [draftUrl]);
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
   const { visible, filters } = useMenuFilter(
     state.draft,
@@ -598,14 +564,6 @@ function Menu({
     const item = bottle(id);
     return item ? !inStock(item) : !availability(byId(id), state.items).ready;
   });
-  function move(index: number, offset: number) {
-    const draft = [...state.draft];
-    const from = draft.indexOf(visible[index]),
-      to = draft.indexOf(visible[index + offset]);
-    [draft[from], draft[to]] = [draft[to], draft[from]];
-    update({ ...state, draft });
-    setNotice("");
-  }
   async function copy() {
     if (!state.published || !published) return;
     try {
@@ -622,14 +580,15 @@ function Menu({
         <h1>Menu</h1>
       </div>
       {filters}{" "}
-      {visible.map((id, index) => {
+      <CardList order={state.draft} visible={visible} save={draft => update({ ...state, draft })}>
+      {visible.map(id => {
         const item = bottle(id),
           r = item || byId(id),
           result = item
             ? { ready: inStock(item), missing: [item.name], low: [] }
             : availability(byId(id), state.items);
         return (
-          <article className="menurow curator" key={id}>
+          <SortCard className="menurow curator" key={id} id={id} name={r.name} remove={() => toggle(id)}>
             {item ? (
               <PourRow pour={describe(item)} />
             ) : (
@@ -637,12 +596,12 @@ function Menu({
             )}
             <div className="curator-tools">
               {!result.ready && <Availability result={result} />}
-              <OrderTools name={r.name} index={index} count={visible.length} move={offset => move(index, offset)}
-                remove={() => { toggle(id); setNotice(""); }} />
+
             </div>
-          </article>
+          </SortCard>
         );
       })}
+      </CardList>
       {!state.draft.length && (
         <p>
           Your selection is empty. <a href="#recipes">Browse recipes</a>
@@ -743,7 +702,14 @@ function Menu({
             <span aria-hidden="true" />
             Copy guest link
           </button>
+          <button className="menu-toggle" disabled={!published} aria-expanded={published && qrUrl === draftUrl}
+            onClick={() => setQrUrl(qrUrl === draftUrl ? "" : draftUrl)}>
+            <span aria-hidden="true" /> QR code
+          </button>
         </div>
+        {published && qrUrl === draftUrl && (new TextEncoder().encode(qrUrl).length <= 2953
+          ? <figure className="guest-qr"><QRCodeSVG value={qrUrl} level="L" size={320} marginSize={4} title="Scan to open the published guest menu" /><figcaption>Scan for the guest menu</figcaption></figure>
+          : <p>This menu link is too long for a QR code. Use Copy guest link to share it.</p>)}
         {unavailable && (
           <p className="feedback">
             Confirm missing ingredients in Bar or remove unavailable drinks to

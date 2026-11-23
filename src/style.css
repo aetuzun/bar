@@ -788,3 +788,13 @@ dialog h2:focus { outline: none; }
 }
 @media (forced-colors: active) { .title-field select, dialog select { appearance: auto; background-image: none; } }
 
+
+.sort-card { position: relative; cursor: grab; }
+.sort-card img { -webkit-touch-callout: none; user-select: none; }
+.sort-card[data-dragging="true"] { z-index: 5; cursor: grabbing; box-shadow: 0 8px 24px #0002; }
+.order-tools button:first-child { cursor: grab; }
+.publish .actions { flex-wrap: wrap; }
+.guest-qr { flex-basis: 100%; grid-column: 1 / -1; margin: 12px 0; }
+.guest-qr svg { display: block; max-width: 100%; height: auto; }
+.guest-qr figcaption { margin-top: 6px; }
+
