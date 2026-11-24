@@ -29,6 +29,14 @@ import "./style.css";
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
+function Wordmark() {
+  return (
+    <span className="brand-letters" aria-hidden="true">
+            T<span className="brand-fold"><span>he&nbsp;</span></span>H<span className="brand-fold"><span>ome</span></span>
+            <span className="brand-dot">·</span>B<span className="brand-fold"><span>ar</span></span>
+          </span>
+  );
+}
 function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
   const [compact, setCompact] = useState(() => window.scrollY > 48);
   useEffect(() => {
@@ -56,10 +64,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
               window.scrollTo(0, 0);
             }
           }}>
-          <span className="brand-letters" aria-hidden="true">
-            T<span className="brand-fold"><span>he&nbsp;</span></span>H<span className="brand-fold"><span>ome</span></span>
-            <span className="brand-dot">·</span>B<span className="brand-fold"><span>ar</span></span>
-          </span>
+          <Wordmark />
         </a>
         {!guest && (
           <nav aria-label="Primary">
@@ -98,22 +103,25 @@ function BarIntro() {
     if (introSeen || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     try { return !sessionStorage.getItem(introKey); } catch { return true; }
   });
+  const [compact, setCompact] = useState(false);
   useEffect(() => {
     introSeen = true;
     try { sessionStorage.setItem(introKey, "1"); } catch { /* Use the in-memory flag. */ }
     if (!visible) return;
     const finish = () => setVisible(false);
-    const timer = window.setTimeout(finish, 1600);
+    const foldTimer = window.setTimeout(() => setCompact(true), 1750);
+    const timer = window.setTimeout(finish, 3600);
     window.addEventListener("pointerdown", finish, { once: true });
     window.addEventListener("keydown", finish, { once: true });
     return () => {
+      clearTimeout(foldTimer);
       clearTimeout(timer);
       window.removeEventListener("pointerdown", finish);
       window.removeEventListener("keydown", finish);
     };
   }, [visible]);
-  return visible ? <div className="bar-intro" aria-hidden="true">
-    <div><Illustration id="martini" /><strong>The Home · Bar</strong></div>
+  return visible ? <div className="bar-intro" data-compact={compact} aria-hidden="true">
+    <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
 function Footer({ message = defaultFooter }: { message?: string }) {
@@ -263,6 +271,14 @@ function Bar({
   const [expanded, setExpanded] = useState<string[]>(["Whiskies"]);
   const [notice, setNotice] = useState("");
   const [previous, setPrevious] = useState<Item | null>(null);
+  useEffect(() => {
+    if (!previous) return;
+    const timer = window.setTimeout(() => {
+      setPrevious(null);
+      setNotice("");
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [previous]);
   const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
   const nextStatus = (i: Item) => i.status === "Available" ? "Low" : i.status === "Low" ? "Unavailable" : "Available";
   function cycle(i: Item) {

@@ -920,12 +920,12 @@ dialog h2:focus { outline: none; }
   margin-inline: .15em .18em;
   transition: margin 340ms cubic-bezier(.22,.72,.18,1);
 }
-.site-header[data-compact="true"] .brand-fold {
+:is(.site-header, .bar-intro)[data-compact="true"] .brand-fold {
   grid-template-columns: 0fr;
   opacity: 0;
   transition-delay: 0ms;
 }
-.site-header[data-compact="true"] .brand-dot { margin-inline: .035em .07em; }
+:is(.site-header, .bar-intro)[data-compact="true"] .brand-dot { margin-inline: .035em .07em; }
 
 :root {
   --dropdown-radius: 12px;
@@ -1191,11 +1191,12 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .stock-notice .undo-stock { margin: 0; padding: 0 14px; min-height: 44px; font-weight: 650; border-radius: 17px; background: var(--card); }
 .bar-intro {
   position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
-  background: var(--paper); pointer-events: none; animation: intro-reveal 1.55s ease both;
+  background: var(--paper); pointer-events: none; animation: intro-reveal 3.6s ease both;
 }
 .bar-intro > div { text-align: center; animation: intro-settle .8s ease-out both; }
 .bar-intro .glass { width: 150px; height: 160px; margin: auto; }
 .bar-intro strong { display: block; margin-top: 10px; font-size: 1.6rem; letter-spacing: -.055em; }
-@keyframes intro-reveal { 0%, 62% { opacity: 1; } 100% { opacity: 0; } }
+.bar-intro .brand-letters { justify-content: center; white-space: nowrap; }
+@keyframes intro-reveal { 0%, 82% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes intro-settle { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .bar-intro { display: none; } }
