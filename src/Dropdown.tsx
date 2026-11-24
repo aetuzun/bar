@@ -5,7 +5,7 @@ type Option = { label: string; value: string; disabled?: boolean };
 type Group = { label?: string; options: Option[] };
 type OptionProps = { label?: string; value?: string; disabled?: boolean; children?: ReactNode };
 
-function readGroups(children: ReactNode): Group[] {
+export function readGroups(children: ReactNode): Group[] {
   const groups: Group[] = [];
   Children.forEach(children, child => {
     if (!isValidElement<OptionProps>(child)) return;
@@ -14,7 +14,7 @@ function readGroups(children: ReactNode): Group[] {
       const options = readGroups(content).flatMap(group => group.options);
       if (options.length) groups.push({ label, options });
     } else if (child.type === "option" && (value ?? content) !== "") {
-      const option = { label: String(content), value: value ?? String(content), disabled };
+      const option = { label: Children.toArray(content).join(""), value: value ?? String(content), disabled };
       const last = groups.at(-1);
       if (last && !last.label) last.options.push(option);
       else groups.push({ options: [option] });

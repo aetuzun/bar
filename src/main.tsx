@@ -1,4 +1,4 @@
-import { Dropdown } from "./Dropdown";
+import { Dropdown, readGroups } from "./Dropdown";
 import { CardList, SortCard } from "./CardOrder";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
@@ -91,42 +91,8 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
     </header>
   );
 }
-const nyDate = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
 function Footer({ message = defaultFooter }: { message?: string }) {
-  const footerRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      document.documentElement.classList.toggle("footer-visible", entry.isIntersecting);
-    });
-    if (footerRef.current) observer.observe(footerRef.current);
-    return () => {
-      observer.disconnect();
-      document.documentElement.classList.remove("footer-visible");
-    };
-  }, []);
-  const [date, setDate] = useState(() => nyDate.format(Date.now()));
-  useEffect(() => {
-    const tick = () => setDate(nyDate.format(Date.now()));
-    const timer = setInterval(tick, 30000);
-    window.addEventListener("focus", tick);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", tick);
-    };
-  }, []);
-  return (
-    <footer ref={footerRef}>
-      <div className="foot-inner">
-        <span>{message}</span>
-        <time>{date}</time>
-      </div>
-    </footer>
-  );
+  return <footer><div className="foot-inner"><span>{message}</span><small>Beta</small></div></footer>;
 }
 function Editor({
   item,
@@ -146,13 +112,14 @@ function Editor({
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialog.current?.showModal();
+    heading.current?.focus();
   }, []);
   function field<K extends keyof Item>(key: K, value: Item[K]) {
     setForm({ ...form, [key]: value });
   }
   return (
     <dialog
-      aria-label={item.name ? "Edit item" : "Add item"}
+      className="entry-sheet" aria-label={item.name ? "Edit item" : "Add to bar"}
       ref={dialog}
       onCancel={close}
     >
@@ -163,9 +130,9 @@ function Editor({
       }}>
         <div className="wizard-nav">
           {adding && step > 1 && <button type="button" aria-label="Back" onClick={() => setStep(step - 1)}>←</button>}
+          <p className="step-count">{adding ? `Add to bar · ${step} of 3` : "Bar"}</p>
           <button type="button" className="card-remove" aria-label="Close" onClick={close}><span /></button>
         </div>
-        {adding && <p className="step-count">Add item · {step} of 3</p>}
         <h2 ref={heading} tabIndex={-1} autoFocus>{adding ? ["Choose a category", "Choose a type", "Bottle details"][step - 1] : "Edit item"}</h2>
         {adding && step === 1 && <div className="wizard-choices">{groups.map(group =>
           <button key={group} type="button" onClick={() => {
@@ -204,7 +171,7 @@ function Editor({
           <div className="editor-field"><span>Status</span><Dropdown label="Status" value={form.status} onChange={v => field("status", v as Item["status"])}>
             {statuses.map(status => <option key={status}>{status}</option>)}
           </Dropdown></div>
-          <div className="actions"><button className="solid" disabled={!form.kind.trim() || !form.name.trim()}>Save item</button></div>
+          <div className="actions"><button className="solid" disabled={!form.kind.trim() || !form.name.trim()}>{adding ? "Add to bar" : "Save changes"}</button></div>
         </>}
       </form>
     </dialog>
@@ -216,11 +183,28 @@ function AddPicker({ label, placeholder, choose, children }: {
   choose: (id: string) => void;
   children: React.ReactNode;
 }) {
-  return (
-    <Dropdown add label={label} placeholder={placeholder} onChange={choose}>
-      {children}
-    </Dropdown>
-  );
+  const dialog = useRef<HTMLDialogElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const groups = readGroups(children);
+  return <>
+    <button className="filter-add" aria-label={label} aria-haspopup="dialog" onClick={() => {
+      dialog.current?.showModal();
+      heading.current?.focus();
+    }}><span aria-hidden="true">+</span></button>
+    <dialog className="entry-sheet picker-sheet" ref={dialog} aria-label={label}>
+      <div className="picker-head">
+        <h2 tabIndex={-1} ref={heading}>{label}</h2>
+        <button className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
+      </div>
+      {groups.map(group => <section key={group.label}>
+        <h3>{group.label}</h3>
+        <div className="wizard-choices">{group.options.map(o =>
+          <button key={o.value} disabled={o.disabled} onClick={() => { dialog.current?.close(); choose(o.value); }}>{o.label}</button>
+        )}</div>
+      </section>)}
+      {!groups.length && <p>{placeholder}</p>}
+    </dialog>
+  </>;
 }
 
 function Bar({
@@ -268,8 +252,8 @@ function Bar({
         </div>
         <button
           className="filter-add"
-          aria-label="Add item"
-          title="Add item"
+          aria-label="Add to bar"
+          title="Add to bar"
           onClick={() =>
             setEdit({
               id: crypto.randomUUID(),
@@ -612,9 +596,7 @@ function Menu({
   const [notice, setNotice] = useState("");
   const draftUrl = guestUrl(publishSnapshot(state));
   const published = !!state.published && guestUrl(state.published) === draftUrl;
-  const [qrUrl, setQrUrl] = useState("");
-  const [copiedUrl, setCopiedUrl] = useState("");
-  useEffect(() => { setCopiedUrl(""); setQrUrl(""); setNotice(""); }, [draftUrl]);
+  useEffect(() => setNotice(""), [draftUrl]);
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
   const { visible, filters, resetFilter } = useMenuFilter(
     state.draft,
@@ -624,16 +606,6 @@ function Menu({
     const item = bottle(id);
     return item ? !inStock(item) : !availability(byId(id), state.items).ready;
   });
-  async function copy() {
-    if (!state.published || !published) return;
-    try {
-      await navigator.clipboard.writeText(guestUrl(state.published));
-      setCopiedUrl(draftUrl);
-      setNotice("Guest link copied.");
-    } catch {
-      setNotice("Copy failed. Allow clipboard access and try again.");
-    }
-  }
   return (
     <>
       <div className="pagehead">
@@ -705,6 +677,7 @@ function Menu({
         </p>
       )}
 
+      <details className="menu-settings"><summary>Menu settings</summary><div className="settings-fields">
       <div className="title-field guest-animation-field"><span>Guest animation</span>
         <Dropdown label="Guest animation" value={state.scene || "shaker"} onChange={scene => update({ ...state, scene: scene as Scene })}>
           {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -733,6 +706,7 @@ function Menu({
           }}
         />
       </label>
+      </div></details>
       <section className="publish">
         <h2>Guest link</h2>
         <div className="actions">
@@ -746,36 +720,24 @@ function Menu({
                 ...state,
                 published: publishSnapshot(state),
               });
-              setNotice("Published. Copy the link or show the QR code to share.");
+              setNotice("Guest menu published.");
             }}
           >
             <span aria-hidden="true" />
             Publish
           </button>
-          <button
-            className="menu-toggle"
-            data-complete={published && copiedUrl === draftUrl}
-            disabled={!published}
-            onClick={copy}
-          >
-            <span aria-hidden="true" />
-            Copy link
-          </button>
-          <button className="menu-toggle" disabled={!published} aria-expanded={published && qrUrl === draftUrl}
-            onClick={() => setQrUrl(qrUrl === draftUrl ? "" : draftUrl)}>
-            <span aria-hidden="true" /> QR code
-          </button>
+          {["Open", "QR"].map(label => published
+            ? <a key={label} className="share-link" target="_blank" rel="noopener noreferrer"
+                href={label === "Open" ? draftUrl : draftUrl.replace("#guest/", "#qr/")}>{label}</a>
+            : <button key={label} className="share-link" disabled>{label}</button>)}
         </div>
-        {published && qrUrl === draftUrl && (new TextEncoder().encode(qrUrl).length <= 2953
-          ? <figure className="guest-qr"><QRCodeSVG value={qrUrl} level="L" size={320} marginSize={4} title="Scan to open the published guest menu" /><figcaption>Scan for the guest menu</figcaption></figure>
-          : <p>This menu link is too long for a QR code. Use Copy link to share it.</p>)}
         {unavailable && (
           <p className="feedback">
             Confirm missing ingredients in Bar or remove unavailable drinks to
             publish.
           </p>
         )}
-        <p role="status" className={notice.startsWith("Copy failed") ? "feedback" : "visually-hidden"}>{notice}</p>
+        <p role="status" className="visually-hidden">{notice}</p>
       </section>
     </>
   );
@@ -855,6 +817,15 @@ function App() {
     window.addEventListener("hashchange", changed);
     return () => window.removeEventListener("hashchange", changed);
   }, []);
+  if (hash.startsWith("#qr/")) {
+    const guestHash = hash.replace("#qr/", "#guest/");
+    const url = new URL(guestHash, location.href).href;
+    return <main className="qr-page"><h1>{guestMenu(guestHash).title}</h1>
+      {new TextEncoder().encode(url).length <= 2953
+        ? <QRCodeSVG value={url} level="L" size={384} marginSize={4} title="Scan for the guest menu" />
+        : <p>This menu is too large for a QR code. Share the guest link instead.</p>}
+      <a href={url}>Open guest menu</a></main>;
+  }
   if (hash === "#guest" || hash.startsWith("#guest/")) {
     const snapshot = guestMenu(hash);
     return (
