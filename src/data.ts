@@ -14,7 +14,6 @@ export const statuses = [
   "Low",
   "Unavailable",
   "Planned",
-  "Needs confirmation",
 ] as const;
 export type Status = (typeof statuses)[number];
 export type Item = {
@@ -25,7 +24,7 @@ export type Item = {
   kind: string;
   openedOn?: string;
   shoppingRecipes?: string[];
-  shoppingOrigin?: "created" | "unconfirmed";
+  shoppingOrigin?: "created" | "unavailable";
 };
 const bottle = (
   id: string,
@@ -633,7 +632,7 @@ export const ingredientKinds = [...new Set([...seed.map(i => i.kind), ...Object.
   ...recipes.flatMap(r => r.ingredients.map(([kind]) => kind))])].sort();
 export const kindGroup = (kind: string): Group =>
   seed.find(i => i.kind === kind)?.group ?? extraKinds[kind] ?? "Mixers";
-export const onShoppingList = (item: Item) => item.status === "Planned" || item.status === "Unavailable";
+export const onShoppingList = (item: Item) => item.status === "Planned";
 
 export function releaseShopping(items: Item[], recipeId: string): Item[] {
   return items.flatMap(item => {
@@ -643,6 +642,6 @@ export function releaseShopping(items: Item[], recipeId: string): Item[] {
     const { shoppingOrigin, shoppingRecipes, ...stock } = item;
     if (item.status !== "Planned") return [stock];
     if (shoppingOrigin === "created") return [];
-    return [{ ...stock, status: shoppingOrigin === "unconfirmed" ? "Needs confirmation" : stock.status }];
+    return [{ ...stock, status: shoppingOrigin === "unavailable" ? "Unavailable" : stock.status }];
   });
 }

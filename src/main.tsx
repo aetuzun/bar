@@ -9,7 +9,7 @@ import {
   families,
   groups,
   recipes,
-  seed, ingredientKinds, kindGroup, onShoppingList, releaseShopping,
+  ingredientKinds, kindGroup, onShoppingList, releaseShopping,
   statuses,
   type Item,
   type Recipe,
@@ -156,85 +156,56 @@ function Editor({
       ref={dialog}
       onCancel={close}
     >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (adding && step === 1) {
-            if (form.kind.trim()) setStep(2);
-            return;
-          }
-          if (form.name.trim() && form.kind.trim())
-            save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
-        }}
-      >
-        {adding && <p className="step-count">Add item · {step} of 2</p>}
-        <h2 ref={heading} tabIndex={-1} autoFocus>{adding ? (step === 1 ? "What are you adding?" : "How’s your stock?") : "Edit item"}</h2>
-        {(!adding || step === 2) && <>
-        <label>
-          Item name
-          <input
-            required
-            maxLength={100}
-            value={form.name}
-            onChange={(e) => {
-              const name = e.target.value;
-              const known = !form.kind && seed.find(i => i.name.toLowerCase() === name.trim().toLowerCase());
-              setForm(known ? { ...form, name, kind: known.kind, group: known.group } : { ...form, name });
-            }}
-          />
-        </label>
+      <form onSubmit={e => {
+        e.preventDefault();
+        if ((!adding || step === 3) && form.name.trim() && form.kind.trim())
+          save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
+      }}>
+        <div className="wizard-nav">
+          {adding && step > 1 && <button type="button" aria-label="Back" onClick={() => setStep(step - 1)}>←</button>}
+          <button type="button" className="card-remove" aria-label="Close" onClick={close}><span /></button>
+        </div>
+        {adding && <p className="step-count">Add item · {step} of 3</p>}
+        <h2 ref={heading} tabIndex={-1} autoFocus>{adding ? ["Choose a category", "Choose a type", "Bottle details"][step - 1] : "Edit item"}</h2>
+        {adding && step === 1 && <div className="wizard-choices">{groups.map(group =>
+          <button key={group} type="button" onClick={() => {
+            if (group !== form.group) { setForm({ ...item, group }); setCustom(false); }
+            setStep(2);
+          }}>{group}</button>)}</div>}
+        {adding && step === 2 && <div className="wizard-choices">{[...ingredientKinds.filter(kind => kindGroup(kind) === form.group), "Custom type…"].map(kind =>
+          <button key={kind} type="button" onClick={() => {
+            const other = kind === "Custom type…";
+            setCustom(other);
+            if ((!other && form.kind !== kind) || (other && !custom))
+              setForm({ ...form, kind: other ? "" : kind, name: other ? "" : kind });
+            setStep(3);
+          }}>{kind}</button>)}</div>}
+        {(!adding || step === 3) && <>
+          <label>Item name<input required maxLength={100} value={form.name} onChange={e => field("name", e.target.value)} /></label>
+          {!adding && <>
+            <div className="editor-field"><span>Category</span>
+              <Dropdown label="Category" value={form.group} onChange={value => field("group", value as Item["group"])}>
+                {groups.map(group => <option key={group}>{group}</option>)}
+              </Dropdown>
+            </div>
+            <div className="editor-field"><span>Ingredient type</span>
+              <Dropdown label="Ingredient type" value={custom ? "__custom" : form.kind} onChange={value => {
+                setCustom(value === "__custom");
+                setForm({ ...form, kind: value === "__custom" ? "" : value, group: value === "__custom" ? form.group : kindGroup(value) });
+              }}>
+                {groups.map(group => <optgroup key={group} label={group}>{ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}</optgroup>)}
+                <option value="__custom">Custom type…</option>
+              </Dropdown>
+            </div>
+          </>}
+          {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
+          {(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
+            <label>Opened on (optional)<input type="date" value={form.openedOn || ""} onChange={e => field("openedOn", e.target.value)} /></label>}
+          <div className="editor-field"><span>Status</span><Dropdown label="Status" value={form.status} onChange={v => field("status", v as Item["status"])}>
+            {statuses.map(status => <option key={status}>{status}</option>)}
+          </Dropdown></div>
+          <div className="actions"><button className="solid" disabled={!form.kind.trim() || !form.name.trim()}>Save item</button></div>
         </>}
-        {(!adding || (step === 1 && custom)) && <div className="editor-field">
-          <span>Category</span>
-          <Dropdown
-            label="Category"
-            value={form.group}
-            onChange={value => field("group", value as Item["group"])}
-          >
-            {groups.map((g) => (
-              <option key={g}>{g}</option>
-            ))}
-          </Dropdown>
-        </div>
-        }
-        {(!adding || step === 1) && <><div className="editor-field">
-          <span>Ingredient type</span>
-          <Dropdown label="Ingredient type" placeholder="Choose a type…" value={custom ? "__custom" : form.kind} onChange={value => {
-            const kind = value;
-            setCustom(kind === "__custom");
-            setForm({ ...form, name: adding && (!form.name || form.name === form.kind) ? kind === "__custom" ? "" : kind : form.name, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
-          }}>
-            <option value="" disabled>Choose a type…</option>
-            {groups.map(group => <optgroup key={group} label={group}>
-              {ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}
-            </optgroup>)}
-            <option value="__custom">Custom type…</option>
-          </Dropdown>
-        </div>
-        {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
-        </>}
-        {(!adding || step === 2) && <>{(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
-          <label>Opened on (optional)<input type="date" value={form.openedOn || ""} onChange={e => field("openedOn", e.target.value)} /></label>}
-        <div className="editor-field">
-          <span>Status</span>
-          <Dropdown
-            label="Status"
-            value={form.status}
-            onChange={value => field("status", value as Item["status"])}
-          >
-            {statuses.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </Dropdown>
-        </div>
-
-        </>}
-        <div className="actions">
-          <button type="button" onClick={adding && step === 2 ? () => setStep(1) : close}>
-            {adding && step === 2 ? "Back" : "Cancel"}
-          </button>
-          <button className="solid" disabled={!form.kind.trim()}>{adding && step === 1 ? "Continue" : "Save item"}</button>
-        </div>
       </form>
     </dialog>
   );
@@ -264,15 +235,17 @@ function Bar({
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string[]>(["Whiskies"]);
   const [notice, setNotice] = useState("");
+  const [previous, setPrevious] = useState<Item | null>(null);
   const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
   const nextStatus = (i: Item) => i.status === "Available" ? "Low" : i.status === "Low" ? "Unavailable" : "Available";
   function cycle(i: Item) {
+    setPrevious(i);
     const status = nextStatus(i);
     const changed = { ...i, status } as Item;
     delete changed.shoppingOrigin;
     if (!onShoppingList(changed)) delete changed.shoppingRecipes;
     update({ ...state, items: state.items.map(row => row.id === i.id ? changed : row) });
-    setNotice(i.name + (status === "Unavailable" ? " moved to Shopping list." : " · " + status));
+    setNotice(i.name + " · " + status);
   }
   return (
     <>
@@ -343,7 +316,11 @@ function Bar({
           })}
         </div>
         {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : filter === "Low" ? "Nothing is running low." : "Use + to add your first ingredient."}</p>}
-        <p className="stock-notice" role="status">{notice || "Tap a status to update stock. Tap a name to edit."}</p>
+        <p className="stock-notice" role="status">{notice || "Tap a status to update stock. Tap a name to edit."}{previous && <button className="undo-stock" onClick={() => {
+          update({ ...state, items: state.items.map(i => i.id === previous.id ? previous : i) });
+          setNotice(previous.name + " · " + previous.status);
+          setPrevious(null);
+        }}>Undo</button>}</p>
         <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
       </section>
       {edit && (
@@ -351,6 +328,8 @@ function Bar({
           item={edit}
           close={() => setEdit(null)}
           save={(edited) => {
+            setPrevious(null);
+            setNotice("");
             const item = { ...edited };
             // Saving a stock row makes it a manual inventory entry.
             delete item.shoppingOrigin;
@@ -413,6 +392,7 @@ function RecipeEntry({
       <div className="recipe-heading">
         <h2><button aria-label={"View " + r.name + " recipe"} onClick={openRecipe}>{r.name}</button></h2>
         <p className="flavor">{r.style}</p>
+        <p className="composition">{r.ingredients.map(([kind]) => kind).join(" · ")}</p>
       </div>
       <dialog className="prep-sheet" ref={dialog} aria-label={r.name + " recipe"} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
         <div className="prep-body">
@@ -606,7 +586,7 @@ function GuestList({
       <div className="guest-list">
         {menuSections(visible, id => pours[Number(id.slice(1))]).map(section => <section className="menu-section" key={section.name}>
           <h2>{section.name}</h2>
-          {section.ids.map((id) => (
+          <div className="menu-track" tabIndex={0} role="region" aria-label={section.name}>{section.ids.map((id) => (
           <article className="menurow" key={id}>
             {byId(id) ? (
               <MenuDrink r={byId(id)} />
@@ -614,7 +594,7 @@ function GuestList({
               <PourRow pour={pours[Number(id.slice(1))]} />
             )}
           </article>
-        ))}</section>)}
+        ))}</div></section>)}
       </div>
       {!ids.length && <p>No drinks on this menu.</p>}
     </>
@@ -697,7 +677,7 @@ function Menu({
       </div>
       {menuSections(visible, id => describe(bottle(id)!)).map(section => <section className="menu-section" key={section.name}>
       <h2>{section.name}</h2>
-      <CardList order={state.draft} visible={section.ids} save={draft => update({ ...state, draft })}>
+      <div className="menu-track" tabIndex={0} role="region" aria-label={section.name}><CardList horizontal order={state.draft} visible={section.ids} save={draft => update({ ...state, draft })}>
       {section.ids.map(id => {
         const item = bottle(id),
           r = item || byId(id),
@@ -718,7 +698,7 @@ function Menu({
           </SortCard>
         );
       })}
-      </CardList></section>)}
+      </CardList></div></section>)}
       {!state.draft.length && (
         <p>
           Your selection is empty. <a href="#recipes">Browse recipes</a>
@@ -820,14 +800,14 @@ function Manager({ route }: { route: string }) {
     const items = [...state.items];
     for (const kind of new Set(kinds)) {
       let index = items.findIndex(i => i.kind === kind && onShoppingList(i));
-      if (index < 0) index = items.findIndex(i => i.kind === kind && i.status === "Needs confirmation");
+      if (index < 0) index = items.findIndex(i => i.kind === kind && i.status === "Unavailable");
       if (index < 0) {
         items.push({ id: crypto.randomUUID(), name: kind, kind, group: kindGroup(kind), status: "Planned",
           shoppingOrigin: "created", shoppingRecipes: [recipeId] });
       } else {
         const item = items[index];
         items[index] = { ...item, shoppingRecipes: [...new Set([...(item.shoppingRecipes || []), recipeId])],
-          ...(item.status === "Needs confirmation" ? { status: "Planned", shoppingOrigin: "unconfirmed" } : {}) };
+          ...(item.status === "Unavailable" ? { status: "Planned", shoppingOrigin: "unavailable" } : {}) };
       }
     }
     update({ ...state, items });

@@ -1096,3 +1096,29 @@ dialog .step-count { margin-top: 0; }
   .recipe-preview .recipe-tools { margin-top: 4px; }
   .menu-section .menurow { grid-template-columns: 34% minmax(0,1fr); }
 }
+
+:root { --width: min(940px, 91%); }
+.filter-add, .dropdown-add[aria-expanded="true"] span {
+  color: var(--ink); background: white;
+}
+.filter-add { border: 1px solid #dad9d5; }
+.wizard-nav { display: flex; align-items: center; min-height: 36px; }
+.wizard-nav button { width: 44px; height: 44px; font-size: 1.4rem; }
+.wizard-nav .card-remove { position: static; margin-left: auto; background: transparent; }
+.wizard-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 18px; }
+.wizard-choices button { text-align: left; min-height: 50px; padding: 10px 12px; background: var(--card); border: 1px solid #deddd9; border-radius: 9px; }
+.wizard-choices button:is(:hover,:focus-visible) { background: var(--plate); }
+.undo-stock { margin-left: 12px; padding: 8px; text-decoration: underline; }
+.menu-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding: 6px 1px 12px; scrollbar-width: thin; }
+.menu-track .menurow {
+  flex: 0 0 clamp(220px, 32%, 285px); display: flex; flex-direction: column; align-items: stretch;
+  justify-content: flex-start; gap: 6px; margin: 0; scroll-snap-align: start; padding: 18px;
+}
+.menu-track .menurow .drink-art { height: clamp(165px, 17vw, 205px); }
+.menu-track .menurow h2 { font-size: clamp(1.55rem, 2.5vw, 2.05rem); }
+.menu-track .menurow .composition { margin-top: 8px; }
+.menu-track .menurow .curator-tools { align-items: start; }
+@media (max-width: 650px) {
+  .menu-track .menurow { flex-basis: min(79%, 300px); }
+  .menu-track .menurow .drink-art { height: 195px; }
+}

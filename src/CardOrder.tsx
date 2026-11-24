@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
-export function CardList({ order, visible, save, children }: {
-  order: string[]; visible: string[]; save: (ids: string[]) => void; children: ReactNode;
+export function CardList({ order, visible, save, horizontal = false, children }: {
+  horizontal?: boolean; order: string[]; visible: string[]; save: (ids: string[]) => void; children: ReactNode;
 }) {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -18,7 +18,7 @@ export function CardList({ order, visible, save, children }: {
     let index = 0;
     save(order.map(id => visible.includes(id) ? moved[index++] : id));
   }}>
-    <SortableContext items={visible} strategy={verticalListSortingStrategy}>{children}</SortableContext>
+    <SortableContext items={visible} strategy={horizontal ? horizontalListSortingStrategy : verticalListSortingStrategy}>{children}</SortableContext>
   </DndContext>;
 }
 

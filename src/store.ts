@@ -155,6 +155,8 @@ export const storage = {
       return {
         items: data.items.map((item: Item) => ({
           ...item,
+          status: String(item.status) === "Needs confirmation" ? "Unavailable" : item.status,
+          shoppingOrigin: String(item.shoppingOrigin) === "unconfirmed" ? "unavailable" : item.shoppingOrigin,
           group: migratedGroup(item),
         })),
         recipeOrder: Array.isArray(data.recipeOrder) ? validIds(data.recipeOrder)
