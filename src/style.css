@@ -916,6 +916,8 @@ dialog h2:focus { outline: none; }
   transition: grid-template-columns 340ms cubic-bezier(.22,.72,.18,1), opacity 210ms ease 70ms;
 }
 .brand-fold > span { min-width: 0; overflow: hidden; }
+/* Keep room for letter ink beyond the advance width before the wordmark folds. */
+.brand-fold > span::after { content: ""; display: inline-block; width: .09em; }
 .brand-dot {
   margin-inline: .15em .18em;
   transition: margin 340ms cubic-bezier(.22,.72,.18,1);
