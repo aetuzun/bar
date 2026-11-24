@@ -49,7 +49,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
   return (
     <header className={intro ? "site-header guest-header" : "site-header"} data-compact={compact}>
       <div className="header-inner">
-        <a className="brand" href={guest ? location.hash : "#bar"} aria-label="The Home Â· Bar"
+        <a className="brand" href={guest ? location.hash : "#bar"} aria-label="The Home · Bar"
           onClick={event => {
             if (guest || route === "bar") {
               event.preventDefault();
@@ -58,7 +58,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
           }}>
           <span className="brand-letters" aria-hidden="true">
             T<span className="brand-fold"><span>he&nbsp;</span></span>H<span className="brand-fold"><span>ome</span></span>
-            <span className="brand-dot">Â·</span>B<span className="brand-fold"><span>ar</span></span>
+            <span className="brand-dot">·</span>B<span className="brand-fold"><span>ar</span></span>
           </span>
         </a>
         {!guest && (
@@ -199,16 +199,16 @@ function Editor({
         }
         {(!adding || step === 1) && <><div className="editor-field">
           <span>Ingredient type</span>
-          <Dropdown label="Ingredient type" placeholder="Choose a typeâ€¦" value={custom ? "__custom" : form.kind} onChange={value => {
+          <Dropdown label="Ingredient type" placeholder="Choose a type…" value={custom ? "__custom" : form.kind} onChange={value => {
             const kind = value;
             setCustom(kind === "__custom");
             setForm({ ...form, name: adding && (!form.name || form.name === form.kind) ? kind === "__custom" ? "" : kind : form.name, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
           }}>
-            <option value="" disabled>Choose a typeâ€¦</option>
+            <option value="" disabled>Choose a type…</option>
             {groups.map(group => <optgroup key={group} label={group}>
               {ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}
             </optgroup>)}
-            <option value="__custom">Custom typeâ€¦</option>
+            <option value="__custom">Custom type…</option>
           </Dropdown>
         </div>
         {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
@@ -342,9 +342,9 @@ function Bar({
             );
           })}
         </div>
-        {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : "Nothing is running low."}</p>}
+        {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : filter === "Low" ? "Nothing is running low." : "Use + to add your first ingredient."}</p>}
         <p className="stock-notice" role="status">{notice || "Tap a status to update stock. Tap a name to edit."}</p>
-        <p className="storage-note">Saved in this browser. Changes donâ€™t sync between devices.</p>
+        <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
       </section>
       {edit && (
         <Editor
@@ -385,7 +385,7 @@ function Availability({
       }
     >
       {ready
-        ? "Ready now" + (low.length ? " Â· Low on " + low.join(", ") : "")
+        ? "Ready now" + (low.length ? " · Low on " + low.join(", ") : "")
         : "Missing " + missing.join(", ")}
     </p>
   );
@@ -517,7 +517,7 @@ function Recipes({
           </button>
         ))}
       </div>
-        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktailâ€¦" : "All cocktails added"} choose={id => {
+        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
           setOrder([...state.recipeOrder, id]);
           setFilter("All");
         }}>
@@ -547,7 +547,7 @@ function MenuDrink({ r }: { r: Recipe }) {
         <h2>{r.name}</h2>
         <p className="flavor">{r.style}</p>
         <p className="composition">
-          {r.ingredients.map(([kind]) => kind).join(" Â· ")}
+          {r.ingredients.map(([kind]) => kind).join(" · ")}
         </p>
       </div>
     </>
@@ -661,7 +661,7 @@ function Menu({
       </div>
       <div className="filter-bar">
         {filters || <div className="filters"><button aria-pressed="true">All</button></div>}
-        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pourâ€¦" choose={id => {
+        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pour…" choose={id => {
           toggle(id);
           resetFilter();
         }}>
@@ -684,9 +684,9 @@ function Menu({
                     >
                       {item.name}
                       {selected
-                        ? " Â· On menu"
+                        ? " · On menu"
                         : !inStock(item)
-                          ? " Â· " + item.status
+                          ? " · " + item.status
                           : ""}
                     </option>
                   );
