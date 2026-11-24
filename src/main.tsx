@@ -3,6 +3,7 @@ import { CardList, SortCard } from "./CardOrder";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import type { MouseEvent } from "react";
 import { createRoot } from "react-dom/client";
 import {
   availability,
@@ -38,7 +39,7 @@ function Wordmark() {
           </span>
   );
 }
-function Header({ route, guest = false, scene = "shaker", title }: { route: string; guest?: boolean; scene?: Scene; title?: string }) {
+function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
   const [compact, setCompact] = useState(() => window.scrollY > 48);
   useEffect(() => {
     const update = () => setCompact(window.scrollY > 48);
@@ -67,7 +68,6 @@ function Header({ route, guest = false, scene = "shaker", title }: { route: stri
           }}>
           <Wordmark />
         </a>
-        {guest && title && <h1 className="guest-menu-title">{title}</h1>}
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
@@ -147,6 +147,13 @@ function Footer({ message = defaultFooter }: { message?: string }) {
   return <footer ref={footer}><div className="foot-inner"><span>{message}</span>
     <small>Beta V.1 · <time>{date}</time></small></div></footer>;
 }
+function dismissOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
+  const dialog = event.currentTarget;
+  if (event.target !== dialog) return;
+  const { left, top, right, bottom } = dialog.getBoundingClientRect();
+  const { clientX, clientY } = event;
+  if (clientX < left || clientX > right || clientY < top || clientY > bottom) dialog.close();
+}
 function Editor({
   item,
   save,
@@ -174,19 +181,23 @@ function Editor({
     <dialog
       className="entry-sheet" aria-label={item.name ? "Edit item" : "Add to bar"}
       ref={dialog}
-      onCancel={close}
+      onClose={close}
+      onClick={dismissOnBackdrop}
     >
       <form onSubmit={e => {
         e.preventDefault();
         if ((!adding || step === 3) && form.name.trim() && form.kind.trim())
           save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
       }}>
+        <div className="entry-sheet-head">
         <div className="wizard-nav">
           {adding && step > 1 && <button type="button" aria-label="Back" onClick={() => setStep(step - 1)}>←</button>}
           <p className="step-count">{adding ? `Add to bar · ${step} of 3` : "Bar"}</p>
-          <button type="button" className="card-remove" aria-label="Close" onClick={close}><span /></button>
+          <button type="button" className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
         </div>
         <h2 ref={heading} tabIndex={-1} autoFocus>{adding ? ["Choose a category", "Choose a type", "Bottle details"][step - 1] : "Edit item"}</h2>
+        </div>
+        <div className="entry-sheet-body">
         {adding && step === 1 && <div className="wizard-choices">{groups.map(group =>
           <button key={group} type="button" onClick={() => {
             if (group !== form.group) { setForm({ ...item, group }); setCustom(false); }
@@ -226,6 +237,7 @@ function Editor({
           </Dropdown></div>
           <div className="actions"><button className="solid" disabled={!form.kind.trim() || !form.name.trim()}>{adding ? "Add to bar" : "Save changes"}</button></div>
         </>}
+        </div>
       </form>
     </dialog>
   );
@@ -244,11 +256,12 @@ function AddPicker({ label, placeholder, choose, children }: {
       dialog.current?.showModal();
       heading.current?.focus();
     }}><span aria-hidden="true">+</span></button>
-    <dialog className="entry-sheet picker-sheet" ref={dialog} aria-label={label}>
-      <div className="picker-head">
+    <dialog className="entry-sheet picker-sheet" ref={dialog} aria-label={label} onClick={dismissOnBackdrop}>
+      <div className="picker-head entry-sheet-head">
         <h2 tabIndex={-1} ref={heading}>{label}</h2>
         <button className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
       </div>
+      <div className="entry-sheet-body">
       {groups.map(group => <section key={group.label}>
         <h3>{group.label}</h3>
         <div className="wizard-choices">{group.options.map(o =>
@@ -256,6 +269,7 @@ function AddPicker({ label, placeholder, choose, children }: {
         )}</div>
       </section>)}
       {!groups.length && <p>{placeholder}</p>}
+      </div>
     </dialog>
   </>;
 }
@@ -638,9 +652,11 @@ function menuSections(ids: string[], pour: (id: string) => Pour) {
 }
 function GuestList({
   ids,
+  title,
   pours = [],
 }: {
   ids: string[];
+  title: string;
   pours?: Pour[];
 }) {
   const { visible, filters } = useMenuFilter(
@@ -649,6 +665,7 @@ function GuestList({
   );
   return (
     <>
+      <div className="pagehead"><h1>{title}</h1></div>
       {filters}
       <div className="guest-list">
         {menuSections(visible, id => pours[Number(id.slice(1))]).map(section => <section className="menu-section" key={section.name}>
@@ -913,7 +930,7 @@ function App() {
     const snapshot = guestMenu(hash);
     return (
       <>
-        <Header key={hash} route="" guest scene={snapshot.scene} title={snapshot.title} />
+        <Header key={hash} route="" guest scene={snapshot.scene} />
         <main>
           <GuestList {...snapshot} />
         </main>
