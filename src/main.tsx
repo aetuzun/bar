@@ -111,7 +111,7 @@ function BarIntro() {
     try { sessionStorage.setItem(introKey, "1"); } catch { /* Use the in-memory flag. */ }
     if (!visible) return;
     const finish = () => setVisible(false);
-    const foldTimer = window.setTimeout(() => setCompact(true), 1750);
+    const foldTimer = window.setTimeout(() => setCompact(true), 1300);
     const timer = window.setTimeout(finish, 3600);
     window.addEventListener("pointerdown", finish, { once: true });
     window.addEventListener("keydown", finish, { once: true });

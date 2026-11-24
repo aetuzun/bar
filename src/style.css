@@ -1196,6 +1196,13 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .bar-intro .glass { width: 150px; height: 160px; margin: auto; }
 .bar-intro strong { display: block; margin-top: 10px; font-size: 1.6rem; letter-spacing: -.055em; }
 .bar-intro .brand-letters { justify-content: center; white-space: nowrap; }
+.bar-intro .brand-fold {
+  transition-duration: 1.05s, .62s;
+  transition-timing-function: cubic-bezier(.45, 0, .25, 1), ease-in-out;
+}
+.bar-intro .brand-dot {
+  transition: margin 1.05s cubic-bezier(.45, 0, .25, 1);
+}
 @keyframes intro-reveal { 0%, 82% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes intro-settle { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .bar-intro { display: none; } }
