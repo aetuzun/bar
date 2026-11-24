@@ -49,7 +49,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
   return (
     <header className={intro ? "site-header guest-header" : "site-header"} data-compact={compact}>
       <div className="header-inner">
-        <a className="brand" href={guest ? location.hash : "#bar"} aria-label="The Home · Bar"
+        <a className="brand" href={guest ? location.hash : "#bar"} aria-label="The Home Â· Bar"
           onClick={event => {
             if (guest || route === "bar") {
               event.preventDefault();
@@ -58,7 +58,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
           }}>
           <span className="brand-letters" aria-hidden="true">
             T<span className="brand-fold"><span>he&nbsp;</span></span>H<span className="brand-fold"><span>ome</span></span>
-            <span className="brand-dot">·</span>B<span className="brand-fold"><span>ar</span></span>
+            <span className="brand-dot">Â·</span>B<span className="brand-fold"><span>ar</span></span>
           </span>
         </a>
         {!guest && (
@@ -138,6 +138,10 @@ function Editor({
   close: () => void;
 }) {
   const [form, setForm] = useState(item);
+  const adding = !item.name;
+  const [step, setStep] = useState(1);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); }, [step]);
   const [custom, setCustom] = useState(!!item.kind && !ingredientKinds.includes(item.kind));
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -155,11 +159,17 @@ function Editor({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (adding && step === 1) {
+            if (form.kind.trim()) setStep(2);
+            return;
+          }
           if (form.name.trim() && form.kind.trim())
             save({ ...form, name: form.name.trim(), kind: form.kind.trim() });
         }}
       >
-        <h2 tabIndex={-1} autoFocus>{item.name ? "Edit item" : "Add item"}</h2>
+        {adding && <p className="step-count">Add item · {step} of 2</p>}
+        <h2 ref={heading} tabIndex={-1} autoFocus>{adding ? (step === 1 ? "What are you adding?" : "How’s your stock?") : "Edit item"}</h2>
+        {(!adding || step === 2) && <>
         <label>
           Item name
           <input
@@ -173,7 +183,8 @@ function Editor({
             }}
           />
         </label>
-        <div className="editor-field">
+        </>}
+        {(!adding || (step === 1 && custom)) && <div className="editor-field">
           <span>Category</span>
           <Dropdown
             label="Category"
@@ -185,22 +196,24 @@ function Editor({
             ))}
           </Dropdown>
         </div>
-        <div className="editor-field">
+        }
+        {(!adding || step === 1) && <><div className="editor-field">
           <span>Ingredient type</span>
-          <Dropdown label="Ingredient type" placeholder="Choose a type…" value={custom ? "__custom" : form.kind} onChange={value => {
+          <Dropdown label="Ingredient type" placeholder="Choose a typeâ€¦" value={custom ? "__custom" : form.kind} onChange={value => {
             const kind = value;
             setCustom(kind === "__custom");
-            setForm({ ...form, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
+            setForm({ ...form, name: adding && (!form.name || form.name === form.kind) ? kind === "__custom" ? "" : kind : form.name, kind: kind === "__custom" ? "" : kind, group: kind === "__custom" ? form.group : kindGroup(kind) });
           }}>
-            <option value="" disabled>Choose a type…</option>
+            <option value="" disabled>Choose a typeâ€¦</option>
             {groups.map(group => <optgroup key={group} label={group}>
               {ingredientKinds.filter(kind => kindGroup(kind) === group).map(kind => <option key={kind}>{kind}</option>)}
             </optgroup>)}
-            <option value="__custom">Custom type…</option>
+            <option value="__custom">Custom typeâ€¦</option>
           </Dropdown>
         </div>
         {custom && <label>Custom ingredient type<input required maxLength={80} value={form.kind} onChange={e => field("kind", e.target.value)} /></label>}
-        {(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
+        </>}
+        {(!adding || step === 2) && <>{(form.openedOn || ["Wine & sparkling", "Vermouth & fortified wine", "Aperitifs & liqueurs"].includes(form.group)) &&
           <label>Opened on (optional)<input type="date" value={form.openedOn || ""} onChange={e => field("openedOn", e.target.value)} /></label>}
         <div className="editor-field">
           <span>Status</span>
@@ -215,11 +228,12 @@ function Editor({
           </Dropdown>
         </div>
 
+        </>}
         <div className="actions">
-          <button type="button" onClick={close}>
-            Cancel
+          <button type="button" onClick={adding && step === 2 ? () => setStep(1) : close}>
+            {adding && step === 2 ? "Back" : "Cancel"}
           </button>
-          <button className="solid" disabled={!form.kind.trim()}>Save item</button>
+          <button className="solid" disabled={!form.kind.trim()}>{adding && step === 1 ? "Continue" : "Save item"}</button>
         </div>
       </form>
     </dialog>
@@ -247,15 +261,29 @@ function Bar({
 }) {
   const [edit, setEdit] = useState<Item | null>(null);
   const [filter, setFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState<string[]>(["Whiskies"]);
+  const [notice, setNotice] = useState("");
+  const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
+  const nextStatus = (i: Item) => i.status === "Available" ? "Low" : i.status === "Low" ? "Unavailable" : "Available";
+  function cycle(i: Item) {
+    const status = nextStatus(i);
+    const changed = { ...i, status } as Item;
+    delete changed.shoppingOrigin;
+    if (!onShoppingList(changed)) delete changed.shoppingRecipes;
+    update({ ...state, items: state.items.map(row => row.id === i.id ? changed : row) });
+    setNotice(i.name + (status === "Unavailable" ? " moved to Shopping list." : " · " + status));
+  }
   return (
     <>
       <div className="pagehead">
         <h1>Bar</h1>
       </div>
       <section className="inventory">
+        <input type="search" className="stock-search" aria-label="Search inventory" placeholder="Find a bottle or ingredient" value={query} onChange={e => setQuery(e.target.value)} />
         <div className="filter-bar">
         <div className="filters">
-          {["All", ...groups, "Shopping list"].map((g) => (
+          {["All", "Low", "Shopping list"].map((g) => (
             <button
               key={g}
               aria-pressed={filter === g}
@@ -289,35 +317,34 @@ function Bar({
                 (g === "Shopping list"
                   ? onShoppingList(i)
                   : i.group === g && !onShoppingList(i)) &&
-                (filter === "All" || g === filter),
+                matches(i) && (filter === "All" || g === filter || (filter === "Low" && i.status === "Low")),
             );
             if (!rows.length && !(g === "Shopping list" && filter === g)) return null;
+            const expandable = !query.trim() && filter === "All";
+            const open = !expandable || expanded.includes(g);
+            const label = <>{g} <small>{rows.length}</small></>;
             return (
-              <section className={g === "Shopping list" ? "group shopping-group" : "group"} key={g}>
-                <div className="group-title">
-                  <h3>{g}</h3>
-                </div>
-                <div>
+              <section className={"stock-section" + (g === "Shopping list" ? " shopping-section" : "")} key={g}>
+                <h2>{expandable ? <button aria-expanded={open} onClick={() => setExpanded(open ? expanded.filter(name => name !== g) : [...expanded, g])}>
+                  {label}<span className="disclosure" aria-hidden="true">{open ? "−" : "+"}</span>
+                </button> : label}</h2>
+                {open && <div>
                   {!rows.length && <p>Your shopping list is empty.</p>}
-                  {rows.map((i) => (
-                    <button
-                      className="stockrow"
-                      key={i.id}
-                      aria-label={"Edit " + i.name + ", " + i.status}
-                      onClick={() => setEdit(i)}
-                    >
-                      <span>{i.name}{i.openedOn && !onShoppingList(i) && <small className="opened-date">Opened {i.openedOn}</small>}</span>
-                      <span className={"status dotted " + slug(i.status)}>
-                        {i.status}
-                      </span>
+                  {rows.map(i => <div className="stockrow" key={i.id}>
+                    <button className="stock-name" aria-label={"Edit " + i.name + ", " + i.status} onClick={() => setEdit(i)}>
+                      {i.name}<small>{i.kind !== i.name ? i.kind : ""}{i.openedOn && " · Opened " + i.openedOn}</small>
                     </button>
-                  ))}
-                </div>
+                    <button className={"status dotted " + slug(i.status)} onClick={() => cycle(i)}
+                      aria-label={i.name + ": " + i.status + ". Mark " + nextStatus(i)}>{i.status}</button>
+                  </div>)}
+                </div>}
               </section>
             );
           })}
         </div>
-        <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
+        {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : "Nothing is running low."}</p>}
+        <p className="stock-notice" role="status">{notice || "Tap a status to update stock. Tap a name to edit."}</p>
+        <p className="storage-note">Saved in this browser. Changes donâ€™t sync between devices.</p>
       </section>
       {edit && (
         <Editor
@@ -358,7 +385,7 @@ function Availability({
       }
     >
       {ready
-        ? "Ready now" + (low.length ? " · Low on " + low.join(", ") : "")
+        ? "Ready now" + (low.length ? " Â· Low on " + low.join(", ") : "")
         : "Missing " + missing.join(", ")}
     </p>
   );
@@ -375,16 +402,23 @@ function RecipeEntry({
 }) {
   const result = availability(r, state.items),
     selected = state.draft.includes(r.id);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const openRecipe = () => dialog.current?.showModal();
   const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
   return (
-    <SortCard id={r.id} name={r.name} remove={remove} className="recipe">
+    <SortCard id={r.id} name={r.name} remove={remove} className="recipe recipe-preview" open={openRecipe}>
       <div className="drink-art">
         <Glass recipe={r} />
       </div>
       <div className="recipe-heading">
-        <h2>{r.name}</h2>
+        <h2><button aria-label={"View " + r.name + " recipe"} onClick={openRecipe}>{r.name}</button></h2>
         <p className="flavor">{r.style}</p>
       </div>
+      <dialog className="prep-sheet" ref={dialog} aria-label={r.name + " recipe"} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
+        <div className="prep-body">
+        <button className="card-remove" aria-label="Close recipe" onClick={() => dialog.current?.close()}><span /></button>
+        <div className="prep-art"><Glass recipe={r} /></div>
+        <h2>{r.name}</h2>
       <section className="measures">
         <div className="label-row">
           <h3>Ingredients</h3>
@@ -415,6 +449,8 @@ function RecipeEntry({
           <p>{r.garnish}</p>
         </div>
       </section>
+        </div>
+      </dialog>
       <div className="recipe-tools">
         <Availability id={"stock-" + r.id} result={result} />
         {result.ready ? (
@@ -481,7 +517,7 @@ function Recipes({
           </button>
         ))}
       </div>
-        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
+        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktailâ€¦" : "All cocktails added"} choose={id => {
           setOrder([...state.recipeOrder, id]);
           setFilter("All");
         }}>
@@ -511,7 +547,7 @@ function MenuDrink({ r }: { r: Recipe }) {
         <h2>{r.name}</h2>
         <p className="flavor">{r.style}</p>
         <p className="composition">
-          {r.ingredients.map(([kind]) => kind).join(" · ")}
+          {r.ingredients.map(([kind]) => kind).join(" Â· ")}
         </p>
       </div>
     </>
@@ -543,6 +579,11 @@ function useMenuFilter(ids: string[], category: (id: string) => string) {
 function pourCategory(style: Pour["style"]) {
   return style === "Whisky" ? "Whisky pours" : "Wine";
 }
+function menuSections(ids: string[], pour: (id: string) => Pour) {
+  const sections = ["Cocktails", "Whisky", "Wine"].map(name => ({ name, ids: [] as string[] }));
+  for (const id of ids) sections[byId(id) ? 0 : pour(id).style === "Whisky" ? 1 : 2].ids.push(id);
+  return sections.filter(section => section.ids.length);
+}
 function GuestList({
   ids,
   title,
@@ -563,7 +604,9 @@ function GuestList({
       </div>
       {filters}
       <div className="guest-list">
-        {visible.map((id) => (
+        {menuSections(visible, id => pours[Number(id.slice(1))]).map(section => <section className="menu-section" key={section.name}>
+          <h2>{section.name}</h2>
+          {section.ids.map((id) => (
           <article className="menurow" key={id}>
             {byId(id) ? (
               <MenuDrink r={byId(id)} />
@@ -571,7 +614,7 @@ function GuestList({
               <PourRow pour={pours[Number(id.slice(1))]} />
             )}
           </article>
-        ))}
+        ))}</section>)}
       </div>
       {!ids.length && <p>No drinks on this menu.</p>}
     </>
@@ -618,7 +661,7 @@ function Menu({
       </div>
       <div className="filter-bar">
         {filters || <div className="filters"><button aria-pressed="true">All</button></div>}
-        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pour…" choose={id => {
+        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pourâ€¦" choose={id => {
           toggle(id);
           resetFilter();
         }}>
@@ -641,9 +684,9 @@ function Menu({
                     >
                       {item.name}
                       {selected
-                        ? " · On menu"
+                        ? " Â· On menu"
                         : !inStock(item)
-                          ? " · " + item.status
+                          ? " Â· " + item.status
                           : ""}
                     </option>
                   );
@@ -652,8 +695,10 @@ function Menu({
           ))}
         </AddPicker>
       </div>
-      <CardList order={state.draft} visible={visible} save={draft => update({ ...state, draft })}>
-      {visible.map(id => {
+      {menuSections(visible, id => describe(bottle(id)!)).map(section => <section className="menu-section" key={section.name}>
+      <h2>{section.name}</h2>
+      <CardList order={state.draft} visible={section.ids} save={draft => update({ ...state, draft })}>
+      {section.ids.map(id => {
         const item = bottle(id),
           r = item || byId(id),
           result = item
@@ -673,7 +718,7 @@ function Menu({
           </SortCard>
         );
       })}
-      </CardList>
+      </CardList></section>)}
       {!state.draft.length && (
         <p>
           Your selection is empty. <a href="#recipes">Browse recipes</a>

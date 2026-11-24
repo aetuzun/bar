@@ -22,11 +22,11 @@ export function CardList({ order, visible, save, children }: {
   </DndContext>;
 }
 
-export function SortCard({ id, name, className, remove, children }: {
-  id: string; name: string; className: string; remove: () => void; children: ReactNode;
+export function SortCard({ id, name, className, remove, open, children }: {
+  id: string; name: string; className: string; remove: () => void; open?: () => void; children: ReactNode;
 }) {
   const {setNodeRef, attributes, listeners, transform, transition, isDragging} = useSortable({id});
-  const interactive = (target: EventTarget) => target instanceof Element && !!target.closest("button, a, input, select, textarea");
+  const interactive = (target: EventTarget) => target instanceof Element && !!target.closest("button, a, input, select, textarea, dialog");
   return <article {...attributes} role="article" aria-label={"Reorder " + name}
     ref={setNodeRef} onKeyDown={event => {
       if (event.target === event.currentTarget) listeners?.onKeyDown?.(event);
@@ -34,6 +34,7 @@ export function SortCard({ id, name, className, remove, children }: {
     style={{transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined, transition}}
     onMouseDown={e => { if (!interactive(e.target)) listeners?.onMouseDown?.(e); }}
     onTouchStart={e => { if (!interactive(e.target)) listeners?.onTouchStart?.(e); }}
+    onClick={e => { if (open && !interactive(e.target) && !(e.target as Element).closest("dialog")) open(); }}
     onDragStart={e => e.preventDefault()}>
     <button type="button" className="card-remove" aria-label={"Remove " + name} onClick={remove}>
       <span aria-hidden="true" />
