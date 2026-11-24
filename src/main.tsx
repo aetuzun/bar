@@ -23,7 +23,7 @@ import {
   storage,
   type BarState,
 } from "./store";
-import { Glass } from "./Art";
+import { Glass, Illustration } from "./Art";
 import "./style.css";
 
 const byId = (id: string) => recipes.find((r) => r.id === id)!;
@@ -91,11 +91,51 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
     </header>
   );
 }
+const introKey = "the-home-bar.intro.v1";
+let introSeen = false;
+function BarIntro() {
+  const [visible, setVisible] = useState(() => {
+    if (introSeen || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    try { return !sessionStorage.getItem(introKey); } catch { return true; }
+  });
+  useEffect(() => {
+    introSeen = true;
+    try { sessionStorage.setItem(introKey, "1"); } catch { /* Use the in-memory flag. */ }
+    if (!visible) return;
+    const finish = () => setVisible(false);
+    const timer = window.setTimeout(finish, 1600);
+    window.addEventListener("pointerdown", finish, { once: true });
+    window.addEventListener("keydown", finish, { once: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("pointerdown", finish);
+      window.removeEventListener("keydown", finish);
+    };
+  }, [visible]);
+  return visible ? <div className="bar-intro" aria-hidden="true">
+    <div><Illustration id="martini" /><strong>The Home · Bar</strong></div>
+  </div> : null;
+}
 function Footer({ message = defaultFooter }: { message?: string }) {
+  const footer = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const original = theme?.content;
+    const observer = new IntersectionObserver(([entry]) => {
+      document.documentElement.classList.toggle("footer-visible", entry.isIntersecting);
+      if (theme && original) theme.content = entry.isIntersecting ? getComputedStyle(entry.target).backgroundColor : original;
+    });
+    if (footer.current) observer.observe(footer.current);
+    return () => {
+      observer.disconnect();
+      document.documentElement.classList.remove("footer-visible");
+      if (theme && original) theme.content = original;
+    };
+  }, []);
   const today = new Date();
   const date = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  return <footer><div className="foot-inner"><span>{message}</span>
-    <small>Beta · <time>{date}</time></small></div></footer>;
+  return <footer ref={footer}><div className="foot-inner"><span>{message}</span>
+    <small>Beta V.1 · <time>{date}</time></small></div></footer>;
 }
 function Editor({
   item,
@@ -303,7 +343,7 @@ function Bar({
           })}
         </div>
         {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : filter === "Low" ? "Nothing is running low." : "Use + to add your first ingredient."}</p>}
-        <p className="stock-notice" role="status">{notice || "Tap a status to update stock. Tap a name to edit."}{previous && <button className="undo-stock" onClick={() => {
+        <p className="stock-notice" data-undo={!!previous} role="status">{notice || "Tap a status to update stock. Tap a name to edit."}{previous && <button className="undo-stock" onClick={() => {
           update({ ...state, items: state.items.map(i => i.id === previous.id ? previous : i) });
           setNotice(previous.name + " · " + previous.status);
           setPrevious(null);
@@ -803,7 +843,7 @@ function Manager({ route }: { route: string }) {
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} />
         ) : (
-          <Bar state={state} update={update} />
+          <><BarIntro /><Bar state={state} update={update} /></>
         )}
       </main>
       <Footer message={state.footer} />
