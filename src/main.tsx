@@ -2,6 +2,7 @@ import { Dropdown, readGroups } from "./Dropdown";
 import { CardList, SortCard } from "./CardOrder";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import {
   availability,
@@ -37,7 +38,7 @@ function Wordmark() {
           </span>
   );
 }
-function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
+function Header({ route, guest = false, scene = "shaker", title }: { route: string; guest?: boolean; scene?: Scene; title?: string }) {
   const [compact, setCompact] = useState(() => window.scrollY > 48);
   useEffect(() => {
     const update = () => setCompact(window.scrollY > 48);
@@ -66,6 +67,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
           }}>
           <Wordmark />
         </a>
+        {guest && title && <h1 className="guest-menu-title">{title}</h1>}
         {!guest && (
           <nav aria-label="Primary">
             {tabs.map((t) => (
@@ -268,6 +270,14 @@ function Bar({
   const [edit, setEdit] = useState<Item | null>(null);
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchButton = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  function closeSearch() {
+    setQuery("");
+    setSearchOpen(false);
+    searchButton.current?.focus();
+  }
   const [expanded, setExpanded] = useState<string[]>(["Whiskies"]);
   const [notice, setNotice] = useState("");
   const [previous, setPrevious] = useState<Item | null>(null);
@@ -296,8 +306,7 @@ function Bar({
         <h1>Bar</h1>
       </div>
       <section className="inventory">
-        <input type="search" className="stock-search" aria-label="Search inventory" placeholder="Find a bottle or ingredient" value={query} onChange={e => setQuery(e.target.value)} />
-        <div className="filter-bar">
+        <div className="filter-bar stock-filter-bar">
         <div className="filters">
           {["All", "Low", "Shopping list"].map((g) => (
             <button
@@ -308,6 +317,26 @@ function Bar({
               {g}
             </button>
           ))}
+        </div>
+        <div className="stock-search-control" data-open={searchOpen} onKeyDown={e => {
+          if (e.key === "Escape" && searchOpen) closeSearch();
+        }}>
+          <input ref={searchInput} id="stock-search" type="search" className="stock-search"
+            aria-label="Search inventory" placeholder="Find a bottle or ingredient"
+            tabIndex={searchOpen ? 0 : -1} aria-hidden={!searchOpen}
+            value={query} onChange={e => setQuery(e.target.value)} />
+          <button ref={searchButton} type="button" aria-label={searchOpen ? "Close search" : "Search inventory"}
+            aria-controls="stock-search" aria-expanded={searchOpen}
+            onClick={() => {
+              if (searchOpen) {
+                closeSearch();
+                return;
+              }
+              flushSync(() => setSearchOpen(true));
+              searchInput.current?.focus();
+            }}>
+            <span className={searchOpen ? "search-close" : "search-icon"} aria-hidden="true" />
+          </button>
         </div>
         <button
           className="filter-add"
@@ -359,7 +388,7 @@ function Bar({
           })}
         </div>
         {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : filter === "Low" ? "Nothing is running low." : "Use + to add your first ingredient."}</p>}
-        <p className="stock-notice" data-undo={!!previous} role="status">{notice || "Tap a status to update stock. Tap a name to edit."}{previous && <button className="undo-stock" onClick={() => {
+        <p className="stock-notice" data-undo={!!previous} role="status">{notice}{previous && <button className="undo-stock" onClick={() => {
           update({ ...state, items: state.items.map(i => i.id === previous.id ? previous : i) });
           setNotice(previous.name + " · " + previous.status);
           setPrevious(null);
@@ -609,11 +638,9 @@ function menuSections(ids: string[], pour: (id: string) => Pour) {
 }
 function GuestList({
   ids,
-  title,
   pours = [],
 }: {
   ids: string[];
-  title: string;
   pours?: Pour[];
 }) {
   const { visible, filters } = useMenuFilter(
@@ -622,9 +649,6 @@ function GuestList({
   );
   return (
     <>
-      <div className="pagehead">
-        <h1>{title}</h1>
-      </div>
       {filters}
       <div className="guest-list">
         {menuSections(visible, id => pours[Number(id.slice(1))]).map(section => <section className="menu-section" key={section.name}>
@@ -889,7 +913,7 @@ function App() {
     const snapshot = guestMenu(hash);
     return (
       <>
-        <Header key={hash} route="" guest scene={snapshot.scene} />
+        <Header key={hash} route="" guest scene={snapshot.scene} title={snapshot.title} />
         <main>
           <GuestList {...snapshot} />
         </main>
