@@ -92,7 +92,10 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
   );
 }
 function Footer({ message = defaultFooter }: { message?: string }) {
-  return <footer><div className="foot-inner"><span>{message}</span><small>Beta</small></div></footer>;
+  const today = new Date();
+  const date = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return <footer><div className="foot-inner"><span>{message}</span>
+    <small>Beta · <time>{date}</time></small></div></footer>;
 }
 function Editor({
   item,
@@ -677,7 +680,7 @@ function Menu({
         </p>
       )}
 
-      <details className="menu-settings"><summary>Menu settings</summary><div className="settings-fields">
+      <details className="menu-settings"><summary>Edit menu</summary><div className="settings-fields">
       <div className="title-field guest-animation-field"><span>Guest animation</span>
         <Dropdown label="Guest animation" value={state.scene || "shaker"} onChange={scene => update({ ...state, scene: scene as Scene })}>
           {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
