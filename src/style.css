@@ -1,4 +1,5 @@
 :root {
+  --pill-radius: 999px;
   --indicator: 14px;
   --nav-size: 1.06rem;
   --paper: #fff;
@@ -1111,7 +1112,7 @@ dialog .step-count { margin-top: 0; }
 .wizard-choices button:is(:hover,:focus-visible) { background: var(--plate); }
 .undo-stock { margin-left: 12px; padding: 8px; text-decoration: underline; }
 .menu-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding: 6px 1px 12px; scrollbar-width: thin; }
-.menu-track .menurow {
+.menu-track :is(.menurow, .recipe-preview) {
   flex: 0 0 clamp(220px, 32%, 285px); display: flex; flex-direction: column; align-items: stretch;
   justify-content: flex-start; gap: 6px; margin: 0; scroll-snap-align: start; padding: 18px;
 }
@@ -1120,7 +1121,7 @@ dialog .step-count { margin-top: 0; }
 .menu-track .menurow .composition { margin-top: 8px; }
 .menu-track .menurow .curator-tools { align-items: start; }
 @media (max-width: 650px) {
-  .menu-track .menurow { flex-basis: min(79%, 300px); }
+  .menu-track :is(.menurow, .recipe-preview) { flex-basis: min(79%, 300px); }
   .menu-track .menurow .drink-art { height: 195px; }
 }
 
@@ -1144,7 +1145,7 @@ dialog .step-count { margin-top: 0; }
 .entry-sheet :is(label,.editor-field) { gap: 5px; margin: 12px 0; font-size: .87rem; min-width: 0; }
 .entry-sheet :is(input,.dropdown-trigger,.solid), .menu-settings :is(input,.dropdown-trigger), .wizard-choices button {
   appearance: none; box-sizing: border-box; min-width: 0; width: 100%; height: 44px; min-height: 44px;
-  padding: 0 15px; border-radius: 24px; border: 1px solid var(--field-line);
+  padding: 0 15px; border-radius: var(--pill-radius); border: 1px solid var(--field-line);
   background: var(--field-fill); color: var(--ink); font: inherit; font-size: 1rem;
 }
 .entry-sheet input[type=date] { display: block; text-align: left; }
@@ -1196,10 +1197,10 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
   inset: auto auto max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   max-width: min(420px, calc(100vw - 108px)); margin: 0;
   display: flex; align-items: center; gap: 12px;
-  padding: 3px 5px 3px 14px; border: 1px solid var(--line); border-radius: 20px;
+  padding: 3px 5px 3px 14px; border: 1px solid var(--line); border-radius: var(--pill-radius);
   background: var(--paper); color: var(--ink); box-shadow: 0 3px 16px #0002;
 }
-.stock-notice .undo-stock { margin: 0; padding: 0 14px; min-height: 44px; font-weight: 650; border-radius: 17px; background: var(--card); }
+.stock-notice .undo-stock { margin: 0; padding: 0 14px; min-height: 44px; font-weight: 650; border-radius: var(--pill-radius); background: var(--card); }
 .bar-intro {
   position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
   background: var(--paper); pointer-events: none; animation: intro-reveal 3.6s ease both;
@@ -1224,7 +1225,7 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .stock-search-control {
   display: flex; position: absolute; z-index: 1; inset: 0 0 auto auto;
   align-items: center; width: 44px; height: 44px;
-  border-radius: 24px; background: var(--paper);
+  border-radius: var(--pill-radius); background: var(--paper);
   transition: width 200ms ease, background-color 200ms ease;
 }
 .stock-search-control[data-open="true"] {
@@ -1284,7 +1285,7 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
   width: auto;
   min-width: 102px;
   padding-inline: 14px 18px;
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
   background: var(--card);
   font-weight: 650;
 }
@@ -1292,11 +1293,11 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .picker-create {
   min-height: 44px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 14px;
   padding-inline: 14px;
   text-align: start;
   border: 1px solid var(--field-line);
-  border-radius: 24px;
+  border-radius: var(--pill-radius);
   background: var(--field-fill);
   font-weight: 650;
 }
@@ -1307,6 +1308,24 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .footer-signoff { display: grid; gap: 3px; }
 .footer-links { margin-top: 0; }
 #root:has(.filter-add) .foot-inner { padding-inline-end: min(134px, 36vw); }
+.footer-purpose { display: flex; align-items: baseline; gap: 9px; }
+.footer-purpose strong { font-size: 1.14rem; letter-spacing: -.055em; white-space: nowrap; }
+.footer-purpose span { font-size: .875rem; font-weight: 400; }
+.menu-settings + .menu-settings { margin-top: 0; border-top: 0; }
+.menu-settings .draft-recovery > summary { min-height: 44px; font-size: .875rem; letter-spacing: normal; }
+.menu-settings .draft-recovery > summary::after { content: "+"; }
+.menu-settings .draft-recovery[open] > summary::after { content: "−"; }
+.menu-track.recipe-track { margin-top: 10px; }
+.recipe-track .recipe-preview > .drink-art { height: clamp(158px, 17vw, 195px); }
+.recipe-track .recipe-preview .recipe-heading { align-self: stretch; padding: 0; }
+.recipe-track .recipe-preview h2 { font-size: clamp(1.55rem, 2.5vw, 2.05rem); }
+.recipe-track .recipe-preview .recipe-tools { align-self: stretch; flex-wrap: wrap; margin-top: auto; }
+.recipe-heart {
+  position: absolute; z-index: 2; inset: 4px 48px auto auto;
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+}
+.recipe-heart svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.recipe-heart[aria-pressed="true"] svg { fill: currentColor; }
 @media (min-width: 651px) {
   .foot-inner { flex-direction: row; justify-content: space-between; align-items: center; }
 }

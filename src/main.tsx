@@ -143,10 +143,12 @@ function Footer({ message = defaultFooter }: { message?: string }) {
       if (theme && original) theme.content = original;
     };
   }, []);
-  const today = new Date();
-  const date = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return <footer ref={footer}><div className="foot-inner">
-    <div className="footer-signoff"><span>{message}</span><small>Beta V.1 · <time>{date}</time></small></div>
+    <div className="footer-signoff">
+      {message.trim() && message !== defaultFooter && <span>{message}</span>}
+      <p className="footer-purpose"><strong aria-label="The Home Bar">TH·B</strong> <span>Track your bottles, mix cocktails, and share a menu.</span></p>
+      <small>© {new Date().getFullYear()} The Home Bar</small>
+    </div>
     <div className="footer-links" role="navigation" aria-label="Site information">
       <a href="./guide.html">About</a>
       <a href="./guide.html#help">Help</a>
@@ -271,10 +273,6 @@ function AddPicker({ label, caption, placeholder, choose, create, children }: {
         <button className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
       </div>
       <div className="entry-sheet-body">
-      {create && <button type="button" className="picker-create" onClick={() => {
-        dialog.current?.close();
-        create();
-      }}>Create a custom cocktail</button>}
       {groups.map(group => <section key={group.label}>
         <h3>{group.label}</h3>
         <div className="wizard-choices">{group.options.map(o =>
@@ -282,6 +280,10 @@ function AddPicker({ label, caption, placeholder, choose, create, children }: {
         )}</div>
       </section>)}
       {!groups.length && <p>{placeholder}</p>}
+      {create && <button type="button" className="picker-create" onClick={() => {
+        dialog.current?.close();
+        create();
+      }}>Create a custom cocktail</button>}
       </div>
     </dialog>
   </>;
@@ -555,11 +557,16 @@ function RecipeEntry({
 }) {
   const result = availability(r, state.items),
     selected = state.draft.includes(r.id);
+  const saved = state.favorites.includes(r.id);
   const dialog = useRef<HTMLDialogElement>(null);
   const openRecipe = () => dialog.current?.showModal();
   const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
   return (
     <SortCard id={r.id} name={r.name} remove={remove} className="recipe recipe-preview" open={openRecipe}>
+      <button className="recipe-heart" type="button" aria-label={"Save " + r.name}
+        aria-pressed={saved} title={saved ? "Remove from Saved" : "Save recipe"} onClick={favorite}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5 4.4 13a4.7 4.7 0 0 1 6.6-6.7L12 7.4l1.1-1.1a4.7 4.7 0 0 1 6.6 6.7Z" /></svg>
+      </button>
       <div className="drink-art">
         <Glass recipe={r} />
       </div>
@@ -573,12 +580,9 @@ function RecipeEntry({
         <button className="card-remove" aria-label="Close recipe" onClick={() => dialog.current?.close()}><span /></button>
         <div className="prep-art"><Glass recipe={r} /></div>
         <h2>{r.name}</h2>
-        <div className="recipe-personal-actions">
-          <button aria-pressed={state.favorites.includes(r.id)} onClick={favorite}>
-            {state.favorites.includes(r.id) ? "Remove from favorites" : "Save to favorites"}
-          </button>
-          {edit && <button onClick={() => { dialog.current?.close(); edit(); }}>Edit recipe</button>}
-        </div>
+        {edit && <div className="recipe-personal-actions">
+          <button onClick={() => { dialog.current?.close(); edit(); }}>Edit recipe</button>
+        </div>}
       <section className="measures">
         <div className="label-row">
           <h3>Ingredients</h3>
@@ -641,11 +645,11 @@ function Recipes({
   const [filter, setFilter] = useState("All");
   const [editing, setEditing] = useState<Recipe | "new" | null>(null);
   const library = [...recipes, ...state.customRecipes];
-  const list = (filter === "Favorites" ? state.favorites : state.recipeOrder)
+  const list = (filter === "Saved" ? state.favorites : state.recipeOrder)
     .map(id => library.find(recipe => recipe.id === id)!).filter(
     (r) =>
       filter === "All" ||
-      filter === "Favorites" ||
+      filter === "Saved" ||
       families[r.id] === filter ||
       (filter === "Ready now" && availability(r, state.items).ready) ||
       (filter === "Missing 1" &&
@@ -670,7 +674,7 @@ function Recipes({
       <div className="filters">
         {[
           "All",
-          "Favorites",
+          "Saved",
           "Ready now",
           "Missing 1",
           ...new Set(Object.values(families)),
@@ -696,15 +700,17 @@ function Recipes({
           ))}
         </AddPicker>
       </div>
-      <CardList order={filter === "Favorites" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
-        save={ids => filter === "Favorites" ? update({ ...state, favorites: ids }) : setOrder(ids)}>
+      {list.length > 0 && <div className="menu-track recipe-track" tabIndex={0} role="region" aria-label="Cocktail recipes" key={filter}>
+      <CardList horizontal order={filter === "Saved" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
+        save={ids => filter === "Saved" ? update({ ...state, favorites: ids }) : setOrder(ids)}>
         {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
           edit={r.id.startsWith("custom-") ? () => setEditing(r) : undefined}
-          favorite={() => update({ ...state, favorites: state.favorites.includes(r.id)
-            ? state.favorites.filter(id => id !== r.id) : [...state.favorites, r.id] })}
-          remove={() => remove(r, filter === "Favorites" ? "favorites" : "recipeOrder")} />)}
+          favorite={() => state.favorites.includes(r.id) ? remove(r, "favorites")
+            : update({ ...state, favorites: [...state.favorites, r.id] })}
+          remove={() => remove(r, filter === "Saved" ? "favorites" : "recipeOrder")} />)}
       </CardList>
-      {!list.length && <p>{filter === "Favorites" ? "Save a cocktail from its recipe to find it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+      </div>}
+      {!list.length && <p>{filter === "Saved" ? "Tap a heart on a cocktail to save it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
       {editing && <CocktailEditor recipe={editing === "new" ? undefined : editing} items={state.items} close={() => setEditing(null)}
         save={recipe => {
           update({ ...state, customRecipes: editing === "new" ? [...state.customRecipes, recipe] :
@@ -825,6 +831,17 @@ function Menu({
 }) {
   const [notice, setNotice] = useState("");
   const [savedName, setSavedName] = useState("");
+  const previousDrafts = state.savedMenus.filter(menu => menu.name === (menu.title || "Menu") + " (previous draft)");
+  const savedMenus = state.savedMenus.filter(menu => !previousDrafts.includes(menu));
+  function savedMenuRow(menu: BarState["savedMenus"][number]) {
+    return <div className="saved-menu-row" key={menu.id}>
+      <span>{menu.name}</span>
+      <button className="collection-action" onClick={() => {
+        loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene });
+        resetFilter();
+      }}>Load as draft</button>
+    </div>;
+  }
   const menuLibrary = [...recipes, ...state.customRecipes];
   const byId = (id: string) => menuLibrary.find(recipe => recipe.id === id)!;
   const draftUrl = guestUrl(publishSnapshot(state));
@@ -925,22 +942,14 @@ function Menu({
               required maxLength={80} placeholder="Name this draft" />
             <button className="collection-action">Save a copy</button>
           </form>
-          {state.savedMenus.map(menu => <div className="saved-menu-row" key={menu.id}>
-            <span>{menu.name}</span>
-            <button className="collection-action" onClick={() => {
-              const { draft, title, footer, scene } = state;
-              const alreadySaved = state.savedMenus.some(copy => copy.title === title && copy.footer === footer &&
-                copy.scene === scene && copy.draft.join() === draft.join());
-              const savedMenus = draft.length && !alreadySaved
-                ? [...state.savedMenus, { id: crypto.randomUUID(), name: (title || "Menu") + " (previous draft)", draft, title, footer, scene }]
-                : state.savedMenus;
-              loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene, savedMenus });
-              resetFilter();
-            }}>Load as draft</button>
-          </div>)}
+          {savedMenus.map(savedMenuRow)}
+          {previousDrafts.length > 0 && <details className="draft-recovery">
+            <summary>Recover older drafts</summary>
+            {previousDrafts.map(savedMenuRow)}
+          </details>}
         </div>
       </details>
-      <details className="menu-settings"><summary>Edit menu</summary><div className="settings-fields">
+      <details className="menu-settings"><summary>Menu options</summary><div className="settings-fields">
       <div className="title-field guest-animation-field"><span>Guest animation</span>
         <Dropdown label="Guest animation" value={state.scene || "shaker"} onChange={scene => update({ ...state, scene: scene as Scene })}>
           {Object.entries(animations).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -959,7 +968,7 @@ function Menu({
         />
       </label>
       <label className="title-field">
-        <span>Footer message</span>
+        <span>Guest message</span>
         <input
           maxLength={100}
           value={state.footer}
@@ -1010,7 +1019,7 @@ function Manager({ route }: { route: string }) {
   const [error, setError] = useState(false);
   const [removal, setRemoval] = useState<{
     route: string;
-    label: string;
+    message: string;
     restore: (current: BarState) => BarState;
   } | null>(null);
   useEffect(() => {
@@ -1063,7 +1072,7 @@ function Manager({ route }: { route: string }) {
     const items = collection === "recipeOrder" ? releaseShopping(state.items, id) : state.items;
     const shopping = collection === "recipeOrder" ? state.items.filter(item => item.shoppingRecipes?.includes(id)) : [];
     update({ ...state, [collection]: state[collection].filter(entry => entry !== id), items });
-    setRemoval({ route, label, restore: current => {
+    setRemoval({ route, message: "Removed " + label, restore: current => {
       const order = [...current[collection]];
       if (!order.includes(id)) order.splice(index, 0, id);
       const restoredItems = [...current.items];
@@ -1092,19 +1101,24 @@ function Manager({ route }: { route: string }) {
             shop={shop} state={state} toggle={toggle} update={update} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} remove={(id, name) => removeFrom("draft", id, name)}
-            loadDraft={next => { setRemoval(null); update(next); }} />
+            loadDraft={next => {
+              const { draft, title, footer, scene } = state;
+              update(next);
+              setRemoval({ route, message: "Loaded saved menu",
+                restore: current => ({ ...current, draft, title, footer, scene }) });
+            }} />
         ) : (
           <><BarIntro /><Bar state={state} update={update} /></>
         )}
         {removal?.route === route && <div className="stock-notice" data-undo="true">
-          <span role="status">Removed {removal.label}</span>
+          <span role="status">{removal.message}</span>
           <button className="undo-stock" onClick={() => {
             update(removal.restore(state));
             setRemoval(null);
           }}>Undo</button>
         </div>}
       </main>
-      <Footer message={state.footer} />
+      <Footer />
     </>
   );
 }
