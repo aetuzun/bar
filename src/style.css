@@ -910,7 +910,14 @@ dialog h2:focus { outline: none; }
   line-height: 1.1;
   white-space: nowrap;
 }
-.brand-letters { display: flex; align-items: baseline; }
+.brand-letters {
+  display: flex;
+  align-items: baseline;
+  /* Match the desktop letter metrics around the square on every platform. */
+  font-family: Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 .brand-fold {
   display: inline-grid;
   grid-template-columns: 1fr;
