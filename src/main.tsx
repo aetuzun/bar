@@ -3,7 +3,7 @@ import { CardList, SortCard } from "./CardOrder";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import type { MouseEvent } from "react";
+import type { MouseEvent, RefObject } from "react";
 import { createRoot } from "react-dom/client";
 import {
   availability,
@@ -544,39 +544,14 @@ function CocktailEditor({ recipe, items, close, save }: {
     </form>
   </dialog>;
 }
-function RecipeEntry({
-  r, remove,
-  state, favorite, edit,
-  toggle, shop,
-}: {
-  shop: (recipeId: string, kinds: string[], remove: boolean) => void;
-  r: Recipe; remove: () => void;
-  state: BarState;
-  favorite: () => void;
+function RecipeSheet({ r, dialog, edit, onClose }: {
+  r: Recipe;
+  dialog: RefObject<HTMLDialogElement | null>;
   edit?: () => void;
-  toggle: (id: string) => void;
+  onClose?: () => void;
 }) {
-  const result = availability(r, state.items),
-    selected = state.draft.includes(r.id);
-  const saved = state.favorites.includes(r.id);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const openRecipe = () => dialog.current?.showModal();
-  const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
-  return (
-    <SortCard id={r.id} name={r.name} remove={remove} className="recipe recipe-preview" open={openRecipe}>
-      <button className="recipe-heart" type="button" aria-label={"Save " + r.name}
-        aria-pressed={saved} title={saved ? "Remove from Saved" : "Save recipe"} onClick={favorite}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5 4.4 13a4.7 4.7 0 0 1 6.6-6.7L12 7.4l1.1-1.1a4.7 4.7 0 0 1 6.6 6.7Z" /></svg>
-      </button>
-      <div className="drink-art">
-        <Glass recipe={r} />
-      </div>
-      <div className="recipe-heading">
-        <h2><button aria-label={"View " + r.name + " recipe"} onClick={openRecipe}>{r.name}</button></h2>
-        <p className="flavor">{r.style}</p>
-        <p className="composition">{r.ingredients.map(([kind]) => kind).join(" · ")}</p>
-      </div>
-      <dialog className="prep-sheet" ref={dialog} aria-label={r.name + " recipe"} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
+  return <dialog className="prep-sheet" ref={dialog} aria-label={r.name + " recipe"}
+    onClose={onClose} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
         <div className="prep-body">
         <button className="card-remove" aria-label="Close recipe" onClick={() => dialog.current?.close()}><span /></button>
         <div className="prep-art"><Glass recipe={r} /></div>
@@ -615,7 +590,42 @@ function RecipeEntry({
         </div>
       </section>
         </div>
-      </dialog>
+      </dialog>;
+}
+
+function RecipeEntry({
+  r, remove,
+  state, favorite, edit,
+  toggle, shop,
+}: {
+  shop: (recipeId: string, kinds: string[], remove: boolean) => void;
+  r: Recipe; remove: () => void;
+  state: BarState;
+  favorite: () => void;
+  edit?: () => void;
+  toggle: (id: string) => void;
+}) {
+  const result = availability(r, state.items),
+    selected = state.draft.includes(r.id);
+  const saved = state.favorites.includes(r.id);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const openRecipe = () => dialog.current?.showModal();
+  const shopping = result.missing.every(kind => state.items.some(i => i.kind === kind && onShoppingList(i) && i.shoppingRecipes?.includes(r.id)));
+  return (
+    <SortCard id={r.id} name={r.name} remove={remove} className="recipe recipe-preview" open={openRecipe}>
+      <button className="recipe-heart" type="button" aria-label={"Save " + r.name}
+        aria-pressed={saved} title={saved ? "Remove from Saved" : "Save recipe"} onClick={favorite}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5 4.4 13a4.7 4.7 0 0 1 6.6-6.7L12 7.4l1.1-1.1a4.7 4.7 0 0 1 6.6 6.7Z" /></svg>
+      </button>
+      <div className="drink-art">
+        <Glass recipe={r} />
+      </div>
+      <div className="recipe-heading">
+        <h2><button aria-label={"View " + r.name + " recipe"} onClick={openRecipe}>{r.name}</button></h2>
+        <p className="flavor">{r.style}</p>
+        <p className="composition">{r.ingredients.map(([kind]) => kind).join(" · ")}</p>
+      </div>
+      <RecipeSheet r={r} dialog={dialog} edit={edit} />
       <div className="recipe-tools">
         <Availability id={"stock-" + r.id} result={result} />
         {result.ready ? (
@@ -1130,6 +1140,87 @@ function Manager({ route }: { route: string }) {
     </>
   );
 }
+function AboutGallery() {
+  const viewport = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const mouseOver = useRef(false);
+  const resumeAfter = useRef(0);
+  const [paused, setPaused] = useState(false);
+  const [selected, setSelected] = useState<Recipe | null>(null);
+
+  useEffect(() => {
+    const scroller = viewport.current;
+    const firstRun = scroller?.firstElementChild?.firstElementChild;
+    if (!scroller || !firstRun || paused || selected) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let inView = false;
+    let frame = 0;
+    let previousTime = 0;
+    let distance = 0;
+
+    const advance = (time: number) => {
+      const elapsed = previousTime ? Math.min(time - previousTime, 50) : 0;
+      previousTime = time;
+      if (!mouseOver.current && !scroller.querySelector(":focus-visible") && time >= resumeAfter.current) {
+        distance += elapsed * 0.028;
+        const pixels = Math.floor(distance);
+        if (pixels) {
+          const runWidth = firstRun.getBoundingClientRect().width;
+          if (runWidth) scroller.scrollLeft = (scroller.scrollLeft + pixels) % runWidth;
+          distance -= pixels;
+        }
+      }
+      frame = requestAnimationFrame(advance);
+    };
+    const updateMotion = () => {
+      cancelAnimationFrame(frame);
+      previousTime = 0;
+      if (inView && !motion.matches) frame = requestAnimationFrame(advance);
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+      updateMotion();
+    });
+    observer.observe(scroller);
+    motion.addEventListener("change", updateMotion);
+    return () => {
+      observer.disconnect();
+      motion.removeEventListener("change", updateMotion);
+      cancelAnimationFrame(frame);
+    };
+  }, [paused, selected]);
+
+  const pauseForBrowsing = () => { resumeAfter.current = performance.now() + 1800; };
+  const openRecipe = (recipe: Recipe) => {
+    flushSync(() => setSelected(recipe));
+    dialog.current?.showModal();
+  };
+
+  return <section className="about-gallery" aria-label="Cocktail gallery">
+    <div className="about-gallery-controls">
+      <button type="button" onClick={() => setPaused(value => !value)}>
+        {paused ? "Resume scrolling" : "Pause scrolling"}
+      </button>
+    </div>
+    <div className="about-gallery-window" ref={viewport}
+      onPointerEnter={event => { if (event.pointerType === "mouse") mouseOver.current = true; }}
+      onPointerLeave={event => { if (event.pointerType === "mouse") mouseOver.current = false; }}
+      onPointerDown={pauseForBrowsing} onPointerUp={pauseForBrowsing}
+      onPointerCancel={pauseForBrowsing} onWheel={pauseForBrowsing}>
+      <div className="about-gallery-track">
+        {[false, true].map(copy => <div className="about-gallery-run" key={String(copy)} aria-hidden={copy || undefined}>
+          {recipes.map(recipe => <button className="about-gallery-card" type="button" key={recipe.id}
+            tabIndex={copy ? -1 : undefined} onClick={() => openRecipe(recipe)}>
+            <div className="about-gallery-art" aria-hidden="true"><Glass recipe={recipe} /></div>
+            <span>{recipe.name}</span>
+          </button>)}
+        </div>)}
+      </div>
+    </div>
+    {selected && <RecipeSheet r={selected} dialog={dialog} onClose={() => setSelected(null)} />}
+  </section>;
+}
+
 function App() {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
@@ -1173,8 +1264,10 @@ if (root) {
 } else {
   const header = document.getElementById("info-header");
   const footer = document.getElementById("info-footer");
+  const gallery = document.getElementById("about-gallery");
   if (header && footer) {
     createRoot(header).render(<Header route="" appPath="./" />);
     createRoot(footer).render(<Footer page={document.body.dataset.page} />);
   }
+  if (gallery) createRoot(gallery).render(<AboutGallery />);
 }
