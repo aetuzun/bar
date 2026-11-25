@@ -566,7 +566,7 @@ function RecipeEntry({
     <SortCard id={r.id} name={r.name} remove={remove} className="recipe recipe-preview" open={openRecipe}>
       <button className="recipe-heart" type="button" aria-label={"Save " + r.name}
         aria-pressed={saved} title={saved ? "Remove from Saved" : "Save recipe"} onClick={favorite}>
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12.9C7.65 12.65 3.1 9.6 3.1 6.4C3.1 4.55 4.15 3.1 5.75 3.1C6.8 3.1 7.55 3.7 8 4.45C8.45 3.7 9.2 3.1 10.25 3.1C11.85 3.1 12.9 4.55 12.9 6.4C12.9 9.6 8.35 12.65 8 12.9Z" /></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5 4.4 13a4.7 4.7 0 0 1 6.6-6.7L12 7.4l1.1-1.1a4.7 4.7 0 0 1 6.6 6.7Z" /></svg>
       </button>
       <div className="drink-art">
         <Glass recipe={r} />

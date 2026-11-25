@@ -1348,8 +1348,8 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
   width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
 }
 /* Bring the marks together while keeping the 44px hit areas separate. */
-.recipe-preview > .card-remove > span { transform: translateX(-11px) rotate(45deg); }
-.recipe-heart svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; transform: translateX(11px); }
+.recipe-preview > .card-remove > span { transform: translateX(-9px) rotate(45deg); }
+.recipe-heart svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linejoin: round; transform: translate(9px, -.5px); }
 .recipe-heart[aria-pressed="true"] svg { fill: currentColor; }
 @media (min-width: 651px) {
   .foot-inner { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
