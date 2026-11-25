@@ -6,20 +6,26 @@
   <meta name="description" content="Learn how The Home Bar tracks cocktail ingredients, saves recipes and creates a guest menu with a QR code.">
   <title>About, Help and Privacy · The Home Bar</title>
   <style>
-    body { margin: 0 auto; padding: 28px 20px 48px; max-width: 700px; font: 1rem/1.55 "Helvetica Neue", Arial, sans-serif; color: #111; }
-    header { border-bottom: 1px solid; padding-bottom: 20px; }
-    h1 { font-size: clamp(2.8rem, 8vw, 4.5rem); letter-spacing: -.07em; line-height: 1; }
+    body { margin: 0 auto; padding: 26px 20px 36px; max-width: 940px; font: 1rem/1.55 "Helvetica Neue", Arial, sans-serif; color: #111; }
+    header { border-bottom: 1px solid; padding-bottom: 20px; font-weight: 700; }
+    header a { text-decoration: none; }
+    h1 { font-size: clamp(3rem, 8vw, 6rem); letter-spacing: -.075em; line-height: .97; max-width: 11ch; margin-block: .5em .3em; }
     h2 { font-size: 1.5rem; letter-spacing: -.04em; }
-    section { margin-top: 32px; padding-top: 10px; border-top: 1px solid #ccc; }
+    p, li { max-width: 62ch; }
+    section { margin-top: 42px; padding-top: 8px; border-top: 1px solid #ccc; }
+    .intro { font-size: clamp(1.18rem, 2vw, 1.4rem); max-width: 41ch; }
+    footer { margin-top: 44px; padding: 20px; border-radius: 12px; background: #f6f5f3; display: flex; flex-wrap: wrap; gap: 10px 20px; }
+    footer strong { margin-inline-end: auto; }
     a { color: inherit; text-underline-offset: .2em; }
   </style>
 </head>
 <body>
   <header><a href="./">The Home · Bar</a></header>
   <main>
-    <h1>About The Home Bar</h1>
-    <p>Keep track of the bottles you have, find cocktails you can make, and give guests a menu they can open from their phone.</p>
-    <p><a href="./#guest">See a sample guest menu</a></p>
+    <h1>Make a good drink at home</h1>
+    <p class="intro">The Home Bar starts with the bottles you already have. Save a recipe worth making again, put together a menu for friends, and give everyone one link to open at the table.</p>
+    <p>It’s a small tool for the way people actually host. Use it for a single drink on a weeknight or a short menu for a roomful of friends.</p>
+    <p><a href="./">Open the bar</a> · <a href="./#guest">See a sample guest menu</a></p>
     <section id="help">
       <h2>Help</h2>
       <ul>
@@ -35,5 +41,6 @@
       <p>The beta uses GitHub Pages for hosting. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub’s privacy statement</a> for information about its processing.</p>
     </section>
   </main>
+  <footer><strong>The Home · Bar</strong><a href="./">Bar</a><a href="#help">Help</a><a href="#privacy">Privacy</a></footer>
 </body>
 </html>

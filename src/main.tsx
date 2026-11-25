@@ -145,9 +145,9 @@ function Footer({ message = defaultFooter }: { message?: string }) {
   }, []);
   const today = new Date();
   const date = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  return <footer ref={footer}><div className="foot-inner"><span>{message}</span>
-    <small>Beta V.1 · <time>{date}</time></small>
-    <div className="footer-links" role="navigation" aria-label="About The Home Bar">
+  return <footer ref={footer}><div className="foot-inner">
+    <div className="footer-signoff"><span>{message}</span><small>Beta V.1 · <time>{date}</time></small></div>
+    <div className="footer-links" role="navigation" aria-label="Site information">
       <a href="./guide.html">About</a>
       <a href="./guide.html#help">Help</a>
       <a href="./guide.html#privacy">Privacy</a>
@@ -249,10 +249,12 @@ function Editor({
     </dialog>
   );
 }
-function AddPicker({ label, placeholder, choose, children }: {
+function AddPicker({ label, caption, placeholder, choose, create, children }: {
   label: string;
+  caption: string;
   placeholder: string;
   choose: (id: string) => void;
+  create?: () => void;
   children: React.ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -262,13 +264,17 @@ function AddPicker({ label, placeholder, choose, children }: {
     <button className="filter-add" aria-label={label} aria-haspopup="dialog" onClick={() => {
       dialog.current?.showModal();
       heading.current?.focus();
-    }}><span aria-hidden="true">+</span></button>
+    }}><span aria-hidden="true">+</span>{caption}</button>
     <dialog className="entry-sheet picker-sheet" ref={dialog} aria-label={label} onClick={dismissOnBackdrop}>
       <div className="picker-head entry-sheet-head">
         <h2 tabIndex={-1} ref={heading}>{label}</h2>
         <button className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
       </div>
       <div className="entry-sheet-body">
+      {create && <button type="button" className="picker-create" onClick={() => {
+        dialog.current?.close();
+        create();
+      }}>Create a custom cocktail</button>}
       {groups.map(group => <section key={group.label}>
         <h3>{group.label}</h3>
         <div className="wizard-choices">{group.options.map(o =>
@@ -391,6 +397,7 @@ function Bar({
           }
         >
           <span aria-hidden="true">+</span>
+          Bottle
         </button>
         </div>
         <div className="inventory-list">
@@ -622,10 +629,11 @@ function RecipeEntry({
 }
 function Recipes({
   state,
-  toggle, shop, setOrder, update,
+  toggle, shop, setOrder, update, remove,
 }: {
   state: BarState;
   update: (state: BarState) => void;
+  remove: (recipe: Recipe, collection: "recipeOrder" | "favorites") => void;
   setOrder: (ids: string[]) => void;
   shop: (recipeId: string, kinds: string[], remove: boolean) => void;
   toggle: (id: string) => void;
@@ -676,7 +684,8 @@ function Recipes({
           </button>
         ))}
       </div>
-        <AddPicker label="Add cocktail" placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
+        <AddPicker label="Add cocktail" caption="Cocktail" create={() => setEditing("new")}
+          placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
           setOrder([...state.recipeOrder, id]);
           setFilter("All");
         }}>
@@ -687,16 +696,13 @@ function Recipes({
           ))}
         </AddPicker>
       </div>
-      <button className="collection-action" onClick={() => setEditing("new")}>+ Create cocktail</button>
       <CardList order={filter === "Favorites" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
         save={ids => filter === "Favorites" ? update({ ...state, favorites: ids }) : setOrder(ids)}>
         {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
           edit={r.id.startsWith("custom-") ? () => setEditing(r) : undefined}
           favorite={() => update({ ...state, favorites: state.favorites.includes(r.id)
             ? state.favorites.filter(id => id !== r.id) : [...state.favorites, r.id] })}
-          remove={() => filter === "Favorites"
-            ? update({ ...state, favorites: state.favorites.filter(id => id !== r.id) })
-            : setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
+          remove={() => remove(r, filter === "Favorites" ? "favorites" : "recipeOrder")} />)}
       </CardList>
       {!list.length && <p>{filter === "Favorites" ? "Save a cocktail from its recipe to find it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
       {editing && <CocktailEditor recipe={editing === "new" ? undefined : editing} items={state.items} close={() => setEditing(null)}
@@ -809,11 +815,13 @@ function GuestList({
 function Menu({
   state,
   update,
-  toggle,
+  toggle, remove, loadDraft,
 }: {
   state: BarState;
   update: (s: BarState) => void;
   toggle: (id: string) => void;
+  remove: (id: string, name: string) => void;
+  loadDraft: (state: BarState) => void;
 }) {
   const [notice, setNotice] = useState("");
   const [savedName, setSavedName] = useState("");
@@ -838,7 +846,7 @@ function Menu({
       </div>
       <div className="filter-bar">
         {filters || <div className="filters"><button aria-pressed="true">All</button></div>}
-        <AddPicker label="Add to menu" placeholder="Choose a cocktail or pour…" choose={id => {
+        <AddPicker label="Add to menu" caption="Drink" placeholder="Choose a cocktail or pour…" choose={id => {
           toggle(id);
           resetFilter();
         }}>
@@ -882,7 +890,7 @@ function Menu({
             ? { ready: inStock(item), missing: [item.name], low: [] }
             : availability(byId(id), state.items);
         return (
-          <SortCard className="menurow curator" key={id} id={id} name={r.name} remove={() => toggle(id)}>
+          <SortCard className="menurow curator" key={id} id={id} name={r.name} remove={() => remove(id, r.name)}>
             {item ? (
               <PourRow pour={describe(item)} />
             ) : (
@@ -926,7 +934,7 @@ function Menu({
               const savedMenus = draft.length && !alreadySaved
                 ? [...state.savedMenus, { id: crypto.randomUUID(), name: (title || "Menu") + " (previous draft)", draft, title, footer, scene }]
                 : state.savedMenus;
-              update({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene, savedMenus });
+              loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene, savedMenus });
               resetFilter();
             }}>Load as draft</button>
           </div>)}
@@ -1000,6 +1008,16 @@ function Menu({
 function Manager({ route }: { route: string }) {
   const [state, setState] = useState(storage.load);
   const [error, setError] = useState(false);
+  const [removal, setRemoval] = useState<{
+    route: string;
+    label: string;
+    restore: (current: BarState) => BarState;
+  } | null>(null);
+  useEffect(() => {
+    if (!removal) return;
+    const timer = window.setTimeout(() => setRemoval(null), 5000);
+    return () => clearTimeout(timer);
+  }, [removal]);
   function update(next: BarState) {
     setState(next);
     try {
@@ -1030,12 +1048,33 @@ function Manager({ route }: { route: string }) {
     update({ ...state, items });
   }
   function toggle(id: string) {
+    if (state.draft.includes(id)) {
+      const recipe = libraryRecipe(id) || state.customRecipes.find(item => item.id === id);
+      if (recipe) removeFrom("draft", id, recipe.name);
+      return;
+    }
     update({
       ...state,
-      draft: state.draft.includes(id)
-        ? state.draft.filter((v) => v !== id)
-        : [...state.draft, id],
+      draft: [...state.draft, id],
     });
+  }
+  function removeFrom(collection: "recipeOrder" | "favorites" | "draft", id: string, label: string) {
+    const index = state[collection].indexOf(id);
+    const items = collection === "recipeOrder" ? releaseShopping(state.items, id) : state.items;
+    const shopping = collection === "recipeOrder" ? state.items.filter(item => item.shoppingRecipes?.includes(id)) : [];
+    update({ ...state, [collection]: state[collection].filter(entry => entry !== id), items });
+    setRemoval({ route, label, restore: current => {
+      const order = [...current[collection]];
+      if (!order.includes(id)) order.splice(index, 0, id);
+      const restoredItems = [...current.items];
+      for (const original of shopping) {
+        const afterRemoval = items.find(item => item.id === original.id);
+        const currentIndex = restoredItems.findIndex(item => item.id === original.id);
+        if (currentIndex === -1 && !afterRemoval) restoredItems.push(original);
+        else if (restoredItems[currentIndex] === afterRemoval && currentIndex >= 0) restoredItems[currentIndex] = original;
+      }
+      return { ...current, [collection]: order, items: restoredItems };
+    } });
   }
   return (
     <>
@@ -1048,15 +1087,22 @@ function Manager({ route }: { route: string }) {
           </p>
         )}
         {route === "recipes" ? (
-          <Recipes setOrder={recipeOrder => {
-            const removed = state.recipeOrder.find(id => !recipeOrder.includes(id));
-            update({ ...state, recipeOrder, items: removed ? releaseShopping(state.items, removed) : state.items });
-          }} shop={shop} state={state} toggle={toggle} update={update} />
+          <Recipes setOrder={recipeOrder => update({ ...state, recipeOrder })}
+            remove={(recipe, collection) => removeFrom(collection, recipe.id, recipe.name)}
+            shop={shop} state={state} toggle={toggle} update={update} />
         ) : route === "menu" ? (
-          <Menu state={state} update={update} toggle={toggle} />
+          <Menu state={state} update={update} toggle={toggle} remove={(id, name) => removeFrom("draft", id, name)}
+            loadDraft={next => { setRemoval(null); update(next); }} />
         ) : (
           <><BarIntro /><Bar state={state} update={update} /></>
         )}
+        {removal?.route === route && <div className="stock-notice" data-undo="true">
+          <span role="status">Removed {removal.label}</span>
+          <button className="undo-stock" onClick={() => {
+            update(removal.restore(state));
+            setRemoval(null);
+          }}>Undo</button>
+        </div>}
       </main>
       <Footer message={state.footer} />
     </>
