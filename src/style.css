@@ -1051,8 +1051,13 @@ dialog h2:focus { outline: none; }
   background: var(--dropdown-focus);
   outline-offset: -2px;
 }
-.stock-dropdown { min-height: 44px; white-space: nowrap; }
+.stock-dropdown { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; white-space: nowrap; }
 .stock-dropdown .dropdown-chevron { margin-inline: 3px; }
+.stock-dropdown-panel button[aria-checked="true"]::after { content: none; }
+.stock-dropdown-panel button[aria-checked="true"] .status > span {
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
 @media (pointer: coarse) {
   .dropdown-panel button { min-height: 44px; }
 }

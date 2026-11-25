@@ -130,7 +130,7 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
   }
 
   return <>
-    <button ref={trigger} type="button" className={add ? "filter-add dropdown-add" : stock ? "stock-dropdown status dotted " + value.toLowerCase() : "dropdown-trigger"}
+    <button ref={trigger} type="button" className={add ? "filter-add dropdown-add" : stock ? "stock-dropdown status" : "dropdown-trigger"}
       aria-label={label} aria-expanded={open} aria-haspopup="menu" aria-controls={id}
       onClick={event => {
         if (!open) show(event.detail === 0 ? "first" : undefined);
@@ -149,11 +149,14 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
         event.preventDefault();
         show(event.key === "ArrowUp" ? "last" : "first");
       }}>
-      {add ? <span aria-hidden="true">+</span> : <><span>{stock ? value : selected?.label ?? placeholder}</span><span className="dropdown-chevron" aria-hidden="true" /></>}
+      {add ? <span aria-hidden="true">+</span> : <>
+        {stock ? <StockStatus value={value} label={value} /> : <span>{selected?.label ?? placeholder}</span>}
+        <span className="dropdown-chevron" aria-hidden="true" />
+      </>}
     </button>
     <div id={id} ref={popup} className="dropdown-popover" popover="manual"
       onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={leave} onKeyDown={moveFocus}>
-      <div className="dropdown-panel" role="menu" aria-label={label}>
+      <div className={stock ? "dropdown-panel stock-dropdown-panel" : "dropdown-panel"} role="menu" aria-label={label}>
         {groups.map((group, index) => (
           <div className="dropdown-group" key={group.label ?? index} role="group" aria-label={group.label}>
             {group.label && <div className="dropdown-caption" aria-hidden="true">{group.label}</div>}
@@ -161,17 +164,21 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
               <button type="button" key={option.value} role={add ? "menuitem" : "menuitemradio"}
                 aria-checked={add ? undefined : option.value === value} disabled={option.disabled} tabIndex={-1}
                 onClick={() => { close(true); onChange(option.value); }}>
-                {stock ? <span className={"dotted " + option.value.toLowerCase()}>{option.label}</span> : option.label}
+                {stock ? <StockStatus value={option.value} label={option.label} /> : option.label}
               </button>
             ))}
           </div>
         ))}
         {!!actions.length && <div className="dropdown-group" role="group" aria-label="Bottle actions">
           {actions.map(action => <button key={action.label} type="button" role="menuitem" tabIndex={-1}
-            onClick={() => { close(true); action.run(); }}>{action.label}</button>)}
+            onClick={() => { close(true); action.run(); }}><span className={stock ? "status" : undefined}>{action.label}</span></button>)}
         </div>}
         {!groups.length && <p className="dropdown-caption">{placeholder}</p>}
       </div>
     </div>
   </>;
+}
+
+function StockStatus({ value, label }: { value: string; label: string }) {
+  return <span className={"status dotted " + value.toLowerCase()}><span>{label}</span></span>;
 }
