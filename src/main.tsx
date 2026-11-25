@@ -1145,13 +1145,12 @@ function AboutGallery() {
   const dialog = useRef<HTMLDialogElement>(null);
   const mouseOver = useRef(false);
   const resumeAfter = useRef(0);
-  const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState<Recipe | null>(null);
 
   useEffect(() => {
     const scroller = viewport.current;
     const firstRun = scroller?.firstElementChild?.firstElementChild;
-    if (!scroller || !firstRun || paused || selected) return;
+    if (!scroller || !firstRun || selected) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let inView = false;
     let frame = 0;
@@ -1188,7 +1187,7 @@ function AboutGallery() {
       motion.removeEventListener("change", updateMotion);
       cancelAnimationFrame(frame);
     };
-  }, [paused, selected]);
+  }, [selected]);
 
   const pauseForBrowsing = () => { resumeAfter.current = performance.now() + 1800; };
   const openRecipe = (recipe: Recipe) => {
@@ -1197,11 +1196,6 @@ function AboutGallery() {
   };
 
   return <section className="about-gallery" aria-label="Cocktail gallery">
-    <div className="about-gallery-controls">
-      <button type="button" onClick={() => setPaused(value => !value)}>
-        {paused ? "Resume scrolling" : "Pause scrolling"}
-      </button>
-    </div>
     <div className="about-gallery-window" ref={viewport}
       onPointerEnter={event => { if (event.pointerType === "mouse") mouseOver.current = true; }}
       onPointerLeave={event => { if (event.pointerType === "mouse") mouseOver.current = false; }}
@@ -1210,9 +1204,8 @@ function AboutGallery() {
       <div className="about-gallery-track">
         {[false, true].map(copy => <div className="about-gallery-run" key={String(copy)} aria-hidden={copy || undefined}>
           {recipes.map(recipe => <button className="about-gallery-card" type="button" key={recipe.id}
-            tabIndex={copy ? -1 : undefined} onClick={() => openRecipe(recipe)}>
-            <div className="about-gallery-art" aria-hidden="true"><Glass recipe={recipe} /></div>
-            <span>{recipe.name}</span>
+            aria-label={recipe.name} tabIndex={copy ? -1 : undefined} onClick={() => openRecipe(recipe)}>
+            <Glass recipe={recipe} />
           </button>)}
         </div>)}
       </div>
