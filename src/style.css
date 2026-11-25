@@ -924,6 +924,7 @@ dialog h2:focus { outline: none; }
   opacity: 1;
   transition: grid-template-columns 340ms cubic-bezier(.22,.72,.18,1), opacity 210ms ease 70ms;
 }
+.brand-letters > .brand-fold:first-of-type { margin-inline-start: .04em; }
 .brand-fold > span { min-width: 0; overflow: hidden; }
 /* Keep room for letter ink beyond the advance width before the wordmark folds. */
 .brand-fold > span::after { content: ""; display: inline-block; width: .09em; }
@@ -933,7 +934,8 @@ dialog h2:focus { outline: none; }
   block-size: .135em;
   background: currentColor;
   transform: translateY(-.29em);
-  margin-inline: .065em .10em;
+  /* Account for the letters' side bearings to balance the visible gaps. */
+  margin-inline: .085em .10em;
   transition: margin 340ms cubic-bezier(.22,.72,.18,1);
 }
 :is(.site-header, .bar-intro, .footer-wordmark)[data-compact="true"] .brand-fold {
@@ -941,7 +943,7 @@ dialog h2:focus { outline: none; }
   opacity: 0;
   transition-delay: 0ms;
 }
-:is(.site-header, .bar-intro, .footer-wordmark)[data-compact="true"] .brand-dot { margin-inline: .035em .07em; }
+:is(.site-header, .bar-intro, .footer-wordmark)[data-compact="true"] .brand-dot { margin-inline: .115em .07em; }
 
 :root {
   --dropdown-radius: 12px;
