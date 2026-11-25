@@ -127,7 +127,7 @@ function BarIntro() {
     <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
-function Footer({ message = defaultFooter, page }: { message?: string; page?: string }) {
+function Footer({ message = defaultFooter, page, guest = false }: { message?: string; page?: string; guest?: boolean }) {
   const footer = useRef<HTMLElement>(null);
   useEffect(() => {
     const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
@@ -146,15 +146,15 @@ function Footer({ message = defaultFooter, page }: { message?: string; page?: st
   return <footer ref={footer}><div className="foot-inner">
     <div className="footer-signoff">
       {message.trim() && message !== defaultFooter && <span>{message}</span>}
-      <a className="brand footer-wordmark" href="./#bar" aria-label="The Home · Bar"><Wordmark /></a>
+      <a className="brand footer-wordmark" data-compact="true" href="./#bar" aria-label="The Home · Bar"><Wordmark /></a>
       <p className="footer-purpose">Track your bottles, mix cocktails, and share a menu.</p>
-      <small>© {new Date().getFullYear()} The Home Bar</small>
     </div>
-    <div className="footer-links" role="navigation" aria-label="Site information">
+    {!guest && <div className="footer-links" role="navigation" aria-label="Site information">
       {["About", "Help", "Privacy"].map(label => (
         <a key={label} href={`./${slug(label)}.html`} aria-current={page === slug(label) ? "page" : undefined}>{label}</a>
       ))}
-    </div>
+    </div>}
+    <small className="footer-copyright">© 2026 The Home.Bar. All rights reserved.</small>
   </div></footer>;
 }
 function dismissOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
@@ -820,25 +820,29 @@ function GuestList({
 function Menu({
   state,
   update,
-  toggle, remove, loadDraft,
+  toggle, remove, loadDraft, removeSaved,
 }: {
   state: BarState;
   update: (s: BarState) => void;
   toggle: (id: string) => void;
   remove: (id: string, name: string) => void;
   loadDraft: (state: BarState) => void;
+  removeSaved: (menu: BarState["savedMenus"][number]) => void;
 }) {
   const [notice, setNotice] = useState("");
   const [savedName, setSavedName] = useState("");
-  const previousDrafts = state.savedMenus.filter(menu => menu.name === (menu.title || "Menu") + " (previous draft)");
-  const savedMenus = state.savedMenus.filter(menu => !previousDrafts.includes(menu));
+  const savedMenus = state.savedMenus.filter(menu => menu.savedByUser || menu.name !== (menu.title || "Menu") + " (previous draft)");
   function savedMenuRow(menu: BarState["savedMenus"][number]) {
     return <div className="saved-menu-row" key={menu.id}>
       <span>{menu.name}</span>
-      <button className="collection-action" onClick={() => {
-        loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene });
-        resetFilter();
-      }}>Load as draft</button>
+      <div className="saved-menu-actions">
+        <button className="collection-action" onClick={() => {
+          loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene });
+          resetFilter();
+        }}>Load as draft</button>
+        <button className="saved-menu-remove" aria-label={"Remove saved menu " + menu.name}
+          title="Remove saved menu" onClick={() => removeSaved(menu)}>×</button>
+      </div>
     </div>;
   }
   const menuLibrary = [...recipes, ...state.customRecipes];
@@ -933,7 +937,7 @@ function Menu({
             const name = savedName.trim();
             if (!name) return;
             const { draft, title, footer, scene } = state;
-            update({ ...state, savedMenus: [...state.savedMenus, { id: crypto.randomUUID(), name, draft, title, footer, scene }] });
+            update({ ...state, savedMenus: [...state.savedMenus, { id: crypto.randomUUID(), name, draft, title, footer, scene, savedByUser: true }] });
             setSavedName("");
           }}>
             <label className="visually-hidden" htmlFor="saved-menu-name">Menu collection name</label>
@@ -942,11 +946,6 @@ function Menu({
             <button className="collection-action">Save a copy</button>
           </form>
           {savedMenus.map(savedMenuRow)}
-          {previousDrafts.length > 0 && <details className="draft-recovery">
-            <summary>Older automatic backups</summary>
-            <p>These drafts were saved automatically by an earlier beta.</p>
-            {previousDrafts.map(savedMenuRow)}
-          </details>}
         </div>
       </details>
       <details className="menu-settings"><summary>Menu options</summary><div className="settings-fields">
@@ -1101,6 +1100,15 @@ function Manager({ route }: { route: string }) {
             shop={shop} state={state} toggle={toggle} update={update} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} remove={(id, name) => removeFrom("draft", id, name)}
+            removeSaved={menu => {
+              const position = state.savedMenus.indexOf(menu);
+              update({ ...state, savedMenus: state.savedMenus.filter(item => item.id !== menu.id) });
+              setRemoval({ route, message: "Removed " + menu.name, restore: current => {
+                const savedMenus = [...current.savedMenus];
+                if (!savedMenus.some(item => item.id === menu.id)) savedMenus.splice(position, 0, menu);
+                return { ...current, savedMenus };
+              } });
+            }}
             loadDraft={next => {
               const { draft, title, footer, scene } = state;
               update(next);
@@ -1149,7 +1157,7 @@ function App() {
         <main>
           <GuestList {...snapshot} />
         </main>
-        <Footer message={snapshot.footer} />
+        <Footer message={snapshot.footer} guest />
       </>
     );
   }

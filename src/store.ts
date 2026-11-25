@@ -21,7 +21,7 @@ export type Snapshot = {
   cocktails?: GuestCocktail[];
 };
 export type GuestCocktail = { id: string; name: string; style: string; ingredients: string[] };
-export type SavedMenu = Pick<BarState, "draft" | "title" | "footer" | "scene"> & { id: string; name: string };
+export type SavedMenu = Pick<BarState, "draft" | "title" | "footer" | "scene"> & { id: string; name: string; savedByUser?: true };
 export type BarState = {
   items: Item[];
   draft: string[];
