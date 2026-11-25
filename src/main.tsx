@@ -320,7 +320,7 @@ function Bar({
     setSearchOpen(false);
     searchButton.current?.focus();
   }
-  const [expanded, setExpanded] = useState<string[]>(["Whiskies"]);
+  const [expanded, setExpanded] = useState<string[]>(["Whiskies", "Spirits", "Aperitifs & liqueurs"]);
   const [notice, setNotice] = useState("");
   const [previous, setPrevious] = useState<Item | null>(null);
   useEffect(() => {
@@ -332,15 +332,21 @@ function Bar({
     return () => clearTimeout(timer);
   }, [previous]);
   const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
-  const nextStatus = (i: Item) => i.status === "Available" ? "Low" : i.status === "Low" ? "Unavailable" : "Available";
-  function cycle(i: Item) {
+  function changeStatus(i: Item, status: Item["status"]) {
+    if (i.status === status) return;
     setPrevious(i);
-    const status = nextStatus(i);
-    const changed = { ...i, status } as Item;
+    const changed = { ...i, status };
     delete changed.shoppingOrigin;
     if (!onShoppingList(changed)) delete changed.shoppingRecipes;
     update({ ...state, items: state.items.map(row => row.id === i.id ? changed : row) });
     setNotice(i.name + " · " + status);
+  }
+  function removeBottle(item: Item) {
+    if (!window.confirm(`Remove ${item.name} from your bar?`)) return;
+    setPrevious(null);
+    setNotice("");
+    update({ ...state, items: state.items.filter(row => row.id !== item.id),
+      draft: state.draft.filter(id => id !== "pour:" + item.id) });
   }
   return (
     <>
@@ -428,8 +434,13 @@ function Bar({
                     <button className="stock-name" aria-label={"Edit " + i.name + ", " + i.status} onClick={() => setEdit(i)}>
                       {i.name}<small>{i.kind !== i.name ? i.kind : ""}{i.openedOn && " · Opened " + i.openedOn}</small>
                     </button>
-                    <button className={"status dotted " + slug(i.status)} onClick={() => cycle(i)}
-                      aria-label={i.name + ": " + i.status + ". Mark " + nextStatus(i)}>{i.status}</button>
+                    <Dropdown stock label={`${i.name}: ${i.status}. Bottle options`} value={i.status}
+                      onChange={status => changeStatus(i, status as Item["status"])}
+                      actions={[{label: "Edit details", run: () => setEdit(i)}, {label: "Remove bottle…", run: () => removeBottle(i)}]}>
+                      {statuses.map(status => <option key={status} value={status}>
+                        {status === "Planned" && i.status !== "Planned" ? "Add to shopping list" : status}
+                      </option>)}
+                    </Dropdown>
                   </div>)}
                 </div>}
               </section>
@@ -858,7 +869,8 @@ function Menu({
       <span>{menu.name}</span>
       <div className="saved-menu-actions">
         <button className="collection-action" onClick={() => {
-          loadDraft({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene });
+          loadDraft({ ...state, draft: menu.draft.filter(id => !id.startsWith("pour:") || state.items.some(item => "pour:" + item.id === id)),
+            title: menu.title, footer: menu.footer, scene: menu.scene });
           resetFilter();
         }}>Load as draft</button>
         <button className="saved-menu-remove" aria-label={"Remove saved menu " + menu.name}

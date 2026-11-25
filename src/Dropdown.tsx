@@ -1,6 +1,25 @@
 import { Children, isValidElement, useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 
+// Sample the reference's damped springs for Web Animations.
+function spring(stiffness: number, damping: number) {
+  let position = 0, velocity = 0;
+  return Array.from({ length: 43 }, (_, index) => {
+    if (!index) return 0;
+    for (let step = 0; step < 4; step++) {
+      velocity += (stiffness * (1 - position) - damping * velocity) / 240;
+      position += velocity / 240;
+    }
+    return index === 42 ? 1 : position;
+  });
+}
+const panelSpring = spring(300, 23);
+const rowSpring = spring(300, 24);
+const chevronSpring = spring(300, 18);
+const leadingSpring = spring(620, 36);
+const trailingSpring = spring(200, 20);
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 type Option = { label: string; value: string; disabled?: boolean };
 type Group = { label?: string; options: Option[] };
 type OptionProps = { label?: string; value?: string; disabled?: boolean; children?: ReactNode };
@@ -23,17 +42,20 @@ export function readGroups(children: ReactNode): Group[] {
   return groups;
 }
 
-export function Dropdown({ label, value = "", placeholder, onChange, children, add = false }: {
+export function Dropdown({ label, value = "", placeholder, onChange, children, add = false, stock = false, actions = [] }: {
   label: string;
   value?: string;
   placeholder?: string;
   onChange: (value: string) => void;
   children: ReactNode;
   add?: boolean;
+  stock?: boolean;
+  actions?: { label: string; run: () => void }[];
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
+  const highlight = useRef<HTMLSpanElement>(null);
   const timer = useRef(0);
   const [open, setOpen] = useState(false);
   const groups = readGroups(children);
@@ -46,6 +68,32 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
     if (restoreFocus) trigger.current?.focus();
   }
 
+  function highlightRow(row: HTMLButtonElement) {
+    const indicator = highlight.current;
+    const panel = indicator?.parentElement;
+    if (!indicator || !panel) return;
+    const bounds = panel.getBoundingClientRect();
+    const scale = bounds.height / panel.offsetHeight || 1;
+    const origin = bounds.top + panel.clientTop * scale;
+    const previous = indicator.getBoundingClientRect();
+    const target = row.getBoundingClientRect();
+    indicator.getAnimations().forEach(animation => animation.cancel());
+    const top = (target.top - origin) / scale;
+    const height = target.height / scale;
+    indicator.style.top = top + "px";
+    indicator.style.height = height + "px";
+    const wasVisible = indicator.dataset.active === "true";
+    indicator.dataset.active = "true";
+    if (!wasVisible || reducedMotion() || previous.top === target.top) return;
+    const down = target.top > previous.top;
+    indicator.animate(leadingSpring.map((lead, index) => {
+      const trail = trailingSpring[index];
+      const start = (previous.top - origin + (target.top - previous.top) * (down ? trail : lead)) / scale;
+      const end = (previous.bottom - origin + (target.bottom - previous.bottom) * (down ? lead : trail)) / scale;
+      return { top: start + "px", height: Math.max(0, end - start) + "px" };
+    }), 700);
+  }
+
   function show(focus?: "first" | "last") {
     clearTimeout(timer.current);
     const panel = popup.current;
@@ -54,7 +102,7 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
     if (!panel.matches(":popover-open")) {
       document.dispatchEvent(new CustomEvent("dropdown-open", { detail: panel }));
       const width = Math.min(Math.max(add ? 270 : 220, bounds.width), window.innerWidth - 32);
-      const left = Math.min(Math.max(16, add ? bounds.right - width : bounds.left), window.innerWidth - width - 16);
+      const left = Math.min(Math.max(16, add || stock ? bounds.right - width : bounds.left), window.innerWidth - width - 16);
       const below = window.innerHeight - bounds.bottom - 20;
       const above = bounds.top - 20;
       const upward = below < 220 && above > below;
@@ -66,6 +114,24 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
       });
       panel.dataset.upward = String(upward);
       panel.showPopover();
+      if (highlight.current) delete highlight.current.dataset.active;
+      if (!reducedMotion()) {
+        panel.getAnimations().forEach(animation => animation.cancel());
+        panel.animate(panelSpring.map(progress => ({
+          opacity: Math.max(0, Math.min(1, progress)),
+          transform: `translateY(${(1 - progress) * (upward ? 6 : -6)}px) scale(${.9 + progress * .1}, ${.82 + progress * .18})`,
+        })), 700);
+        panel.querySelectorAll("button").forEach((row, index) => {
+          row.getAnimations().forEach(animation => animation.cancel());
+          row.animate(rowSpring.map(progress => ({
+            opacity: Math.max(0, Math.min(1, progress)),
+            transform: `translateY(${(progress - 1) * 14}px)`,
+          })), { duration: 700, delay: 50 + Math.min(index, 5) * 45, fill: "backwards" });
+        });
+        trigger.current?.querySelector(".dropdown-chevron")?.animate(chevronSpring.map(progress => ({
+          transform: `translateY(${-2 + progress * 4}px) rotate(${45 + 180 * progress}deg)`,
+        })), 700);
+      }
       setOpen(true);
     }
     if (focus) {
@@ -127,16 +193,16 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
   }
 
   return <>
-    <button ref={trigger} type="button" className={add ? "filter-add dropdown-add" : "dropdown-trigger"}
+    <button ref={trigger} type="button" className={add ? "filter-add dropdown-add" : stock ? "stock-dropdown status dotted " + value.toLowerCase() : "dropdown-trigger"}
       aria-label={label} aria-expanded={open} aria-haspopup="menu" aria-controls={id}
       onClick={event => {
         if (!open) show(event.detail === 0 ? "first" : undefined);
-        else if (event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType === "mouse" &&
+        else if (!stock && event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType === "mouse" &&
           !popup.current?.contains(document.activeElement)) show("first");
         else close();
       }}
       onPointerEnter={event => {
-        if (event.pointerType !== "mouse") return;
+        if (event.pointerType !== "mouse" || stock) return;
         clearTimeout(timer.current);
         timer.current = window.setTimeout(() => show(), 100);
       }}
@@ -146,11 +212,17 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
         event.preventDefault();
         show(event.key === "ArrowUp" ? "last" : "first");
       }}>
-      {add ? <span aria-hidden="true">+</span> : <><span>{selected?.label ?? placeholder}</span><span className="dropdown-chevron" aria-hidden="true" /></>}
+      {add ? <span aria-hidden="true">+</span> : <><span>{stock ? value : selected?.label ?? placeholder}</span><span className="dropdown-chevron" aria-hidden="true" /></>}
     </button>
     <div id={id} ref={popup} className="dropdown-popover" popover="manual"
       onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={leave} onKeyDown={moveFocus}>
-      <div className="dropdown-panel" role="menu" aria-label={label}>
+      <div className="dropdown-panel" role="menu" aria-label={label}
+        onPointerOver={event => {
+          const row = (event.target as Element).closest<HTMLButtonElement>("button:not(:disabled)");
+          if (row && row !== (event.relatedTarget as Element | null)?.closest?.("button")) highlightRow(row);
+        }}
+        onFocus={event => { if (event.target instanceof HTMLButtonElement) highlightRow(event.target); }}>
+        <span className="dropdown-highlight" ref={highlight} aria-hidden="true" />
         {groups.map((group, index) => (
           <div className="dropdown-group" key={group.label ?? index} role="group" aria-label={group.label}>
             {group.label && <div className="dropdown-caption" aria-hidden="true">{group.label}</div>}
@@ -158,11 +230,15 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
               <button type="button" key={option.value} role={add ? "menuitem" : "menuitemradio"}
                 aria-checked={add ? undefined : option.value === value} disabled={option.disabled} tabIndex={-1}
                 onClick={() => { close(true); onChange(option.value); }}>
-                {option.label}
+                {stock ? <span className={"dotted " + option.value.toLowerCase()}>{option.label}</span> : option.label}
               </button>
             ))}
           </div>
         ))}
+        {!!actions.length && <div className="dropdown-group" role="group" aria-label="Bottle actions">
+          {actions.map(action => <button key={action.label} type="button" role="menuitem" tabIndex={-1}
+            onClick={() => { close(true); action.run(); }}>{action.label}</button>)}
+        </div>}
         {!groups.length && <p className="dropdown-caption">{placeholder}</p>}
       </div>
     </div>
