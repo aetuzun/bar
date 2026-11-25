@@ -1,25 +1,6 @@
 import { Children, isValidElement, useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 
-// Sample the reference's damped springs for Web Animations.
-function spring(stiffness: number, damping: number) {
-  let position = 0, velocity = 0;
-  return Array.from({ length: 43 }, (_, index) => {
-    if (!index) return 0;
-    for (let step = 0; step < 4; step++) {
-      velocity += (stiffness * (1 - position) - damping * velocity) / 240;
-      position += velocity / 240;
-    }
-    return index === 42 ? 1 : position;
-  });
-}
-const panelSpring = spring(300, 23);
-const rowSpring = spring(300, 24);
-const chevronSpring = spring(300, 18);
-const leadingSpring = spring(620, 36);
-const trailingSpring = spring(200, 20);
-const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 type Option = { label: string; value: string; disabled?: boolean };
 type Group = { label?: string; options: Option[] };
 type OptionProps = { label?: string; value?: string; disabled?: boolean; children?: ReactNode };
@@ -55,7 +36,6 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
-  const highlight = useRef<HTMLSpanElement>(null);
   const timer = useRef(0);
   const [open, setOpen] = useState(false);
   const groups = readGroups(children);
@@ -68,31 +48,6 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
     if (restoreFocus) trigger.current?.focus();
   }
 
-  function highlightRow(row: HTMLButtonElement) {
-    const indicator = highlight.current;
-    const panel = indicator?.parentElement;
-    if (!indicator || !panel) return;
-    const bounds = panel.getBoundingClientRect();
-    const scale = bounds.height / panel.offsetHeight || 1;
-    const origin = bounds.top + panel.clientTop * scale;
-    const previous = indicator.getBoundingClientRect();
-    const target = row.getBoundingClientRect();
-    indicator.getAnimations().forEach(animation => animation.cancel());
-    const top = (target.top - origin) / scale;
-    const height = target.height / scale;
-    indicator.style.top = top + "px";
-    indicator.style.height = height + "px";
-    const wasVisible = indicator.dataset.active === "true";
-    indicator.dataset.active = "true";
-    if (!wasVisible || reducedMotion() || previous.top === target.top) return;
-    const down = target.top > previous.top;
-    indicator.animate(leadingSpring.map((lead, index) => {
-      const trail = trailingSpring[index];
-      const start = (previous.top - origin + (target.top - previous.top) * (down ? trail : lead)) / scale;
-      const end = (previous.bottom - origin + (target.bottom - previous.bottom) * (down ? lead : trail)) / scale;
-      return { top: start + "px", height: Math.max(0, end - start) + "px" };
-    }), 700);
-  }
 
   function show(focus?: "first" | "last") {
     clearTimeout(timer.current);
@@ -114,24 +69,6 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
       });
       panel.dataset.upward = String(upward);
       panel.showPopover();
-      if (highlight.current) delete highlight.current.dataset.active;
-      if (!reducedMotion()) {
-        panel.getAnimations().forEach(animation => animation.cancel());
-        panel.animate(panelSpring.map(progress => ({
-          opacity: Math.max(0, Math.min(1, progress)),
-          transform: `translateY(${(1 - progress) * (upward ? 6 : -6)}px) scale(${.9 + progress * .1}, ${.82 + progress * .18})`,
-        })), 700);
-        panel.querySelectorAll("button").forEach((row, index) => {
-          row.getAnimations().forEach(animation => animation.cancel());
-          row.animate(rowSpring.map(progress => ({
-            opacity: Math.max(0, Math.min(1, progress)),
-            transform: `translateY(${(progress - 1) * 14}px)`,
-          })), { duration: 700, delay: 50 + Math.min(index, 5) * 45, fill: "backwards" });
-        });
-        trigger.current?.querySelector(".dropdown-chevron")?.animate(chevronSpring.map(progress => ({
-          transform: `translateY(${-2 + progress * 4}px) rotate(${45 + 180 * progress}deg)`,
-        })), 700);
-      }
       setOpen(true);
     }
     if (focus) {
@@ -216,13 +153,7 @@ export function Dropdown({ label, value = "", placeholder, onChange, children, a
     </button>
     <div id={id} ref={popup} className="dropdown-popover" popover="manual"
       onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={leave} onKeyDown={moveFocus}>
-      <div className="dropdown-panel" role="menu" aria-label={label}
-        onPointerOver={event => {
-          const row = (event.target as Element).closest<HTMLButtonElement>("button:not(:disabled)");
-          if (row && row !== (event.relatedTarget as Element | null)?.closest?.("button")) highlightRow(row);
-        }}
-        onFocus={event => { if (event.target instanceof HTMLButtonElement) highlightRow(event.target); }}>
-        <span className="dropdown-highlight" ref={highlight} aria-hidden="true" />
+      <div className="dropdown-panel" role="menu" aria-label={label}>
         {groups.map((group, index) => (
           <div className="dropdown-group" key={group.label ?? index} role="group" aria-label={group.label}>
             {group.label && <div className="dropdown-caption" aria-hidden="true">{group.label}</div>}

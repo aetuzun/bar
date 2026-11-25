@@ -322,7 +322,7 @@ function Bar({
   }
   const [expanded, setExpanded] = useState<string[]>(["Whiskies", "Spirits", "Aperitifs & liqueurs"]);
   const [notice, setNotice] = useState("");
-  const [previous, setPrevious] = useState<Item | null>(null);
+  const [previous, setPrevious] = useState<{ item: Item; restore: (current: BarState) => BarState } | null>(null);
   useEffect(() => {
     if (!previous) return;
     const timer = window.setTimeout(() => {
@@ -334,7 +334,7 @@ function Bar({
   const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
   function changeStatus(i: Item, status: Item["status"]) {
     if (i.status === status) return;
-    setPrevious(i);
+    setPrevious({ item: i, restore: current => ({ ...current, items: current.items.map(row => row.id === i.id ? i : row) }) });
     const changed = { ...i, status };
     delete changed.shoppingOrigin;
     if (!onShoppingList(changed)) delete changed.shoppingRecipes;
@@ -342,9 +342,17 @@ function Bar({
     setNotice(i.name + " · " + status);
   }
   function removeBottle(item: Item) {
-    if (!window.confirm(`Remove ${item.name} from your bar?`)) return;
-    setPrevious(null);
-    setNotice("");
+    const itemIndex = state.items.indexOf(item);
+    const pourId = "pour:" + item.id;
+    const pourIndex = state.draft.indexOf(pourId);
+    setPrevious({ item, restore: current => {
+      const items = [...current.items];
+      const draft = [...current.draft];
+      if (!items.some(row => row.id === item.id)) items.splice(itemIndex, 0, item);
+      if (pourIndex >= 0 && !draft.includes(pourId)) draft.splice(pourIndex, 0, pourId);
+      return { ...current, items, draft };
+    } });
+    setNotice("Removed " + item.name);
     update({ ...state, items: state.items.filter(row => row.id !== item.id),
       draft: state.draft.filter(id => id !== "pour:" + item.id) });
   }
@@ -436,7 +444,7 @@ function Bar({
                     </button>
                     <Dropdown stock label={`${i.name}: ${i.status}. Bottle options`} value={i.status}
                       onChange={status => changeStatus(i, status as Item["status"])}
-                      actions={[{label: "Edit details", run: () => setEdit(i)}, {label: "Remove bottle…", run: () => removeBottle(i)}]}>
+                      actions={[{label: "Edit details", run: () => setEdit(i)}, {label: "Remove", run: () => removeBottle(i)}]}>
                       {statuses.map(status => <option key={status} value={status}>
                         {status === "Planned" && i.status !== "Planned" ? "Add to shopping list" : status}
                       </option>)}
@@ -449,8 +457,8 @@ function Bar({
         </div>
         {filter === "All" && !state.items.some(matches) && <p>{query ? "No matching ingredients." : "Use + to add your first ingredient."}</p>}
         <p className="stock-notice" data-undo={!!previous} role="status">{notice}{previous && <button className="undo-stock" onClick={() => {
-          update({ ...state, items: state.items.map(i => i.id === previous.id ? previous : i) });
-          setNotice(previous.name + " · " + previous.status);
+          update(previous.restore(state));
+          setNotice(previous.item.name + " · " + previous.item.status);
           setPrevious(null);
         }}>Undo</button>}</p>
         <p className="storage-note">Saved in this browser. Changes don’t sync between devices.</p>
