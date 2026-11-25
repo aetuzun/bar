@@ -7,6 +7,7 @@ import type { MouseEvent, RefObject } from "react";
 import { createRoot } from "react-dom/client";
 import {
   availability,
+  cocktailIllustration, cocktailIllustrations,
   measure,
   families,
   groups,
@@ -497,6 +498,7 @@ function CocktailEditor({ recipe, items, close, save }: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [ingredients, setIngredients] = useState<Recipe["ingredients"]>(recipe?.ingredients || [["", 30, "ml"]]);
+  const [illustration, setIllustration] = useState(cocktailIllustration(recipe?.illustration) ?? "martini");
   const kinds = [...new Set([...ingredientKinds, ...items.map(item => item.kind),
     ...ingredients.map(([kind]) => kind)].filter(Boolean))].sort();
   useEffect(() => { dialog.current?.showModal(); }, []);
@@ -511,7 +513,7 @@ function CocktailEditor({ recipe, items, close, save }: {
       const field = (key: string) => String(fields.get(key) || "").trim();
       if (!field("name") || !field("steps") || ingredients.some(([kind, quantity]) => !kind || !Number.isFinite(quantity) || quantity <= 0)) return;
       save({ id: recipe?.id || "custom-" + crypto.randomUUID(), name: field("name"), style: field("style"),
-        glass: "martini", color: "#d9cf9d", ingredients, steps: field("steps"), garnish: field("garnish") || "None" });
+        glass: "martini", color: "#d9cf9d", illustration, ingredients, steps: field("steps"), garnish: field("garnish") || "None" });
     }}>
       <div className="picker-head entry-sheet-head">
         <h2>{recipe ? "Edit cocktail" : "Create cocktail"}</h2>
@@ -539,6 +541,15 @@ function CocktailEditor({ recipe, items, close, save }: {
         </fieldset>
         <label>Method<textarea name="steps" required maxLength={1200} defaultValue={recipe?.steps} rows={3} /></label>
         <label>Garnish (optional)<input name="garnish" maxLength={100} defaultValue={recipe?.garnish} /></label>
+        <details className="cocktail-illustrations">
+          <summary><Illustration id={illustration} /><span>Illustration</span><span aria-hidden="true">+</span></summary>
+          <div className="cocktail-illustration-options" role="group" aria-label="Choose an illustration">
+            {cocktailIllustrations.map(([id, label]) => <button key={id} type="button"
+              aria-pressed={illustration === id} onClick={() => setIllustration(id)}>
+              <Illustration id={id} /><span>{label}</span>
+            </button>)}
+          </div>
+        </details>
         <div className="actions"><button className="solid">Save cocktail</button></div>
       </div>
     </form>
@@ -750,7 +761,7 @@ function MenuDrink({ r }: { r: Recipe }) {
 }
 function GuestCustomDrink({ drink }: { drink: NonNullable<Snapshot["cocktails"]>[number] }) {
   return <>
-    <div className="drink-art"><Illustration id="martini" /></div>
+    <div className="drink-art"><Illustration id={cocktailIllustration(drink.illustration) ?? "martini"} /></div>
     <div>
       <h2>{drink.name}</h2>
       <p className="flavor">{drink.style}</p>

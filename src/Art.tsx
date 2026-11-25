@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { useId } from "react";
-import type { Recipe } from "./data";
+import { cocktailIllustration, type Recipe } from "./data";
 
 const plates = import.meta.glob<string>("./plates/*.svg", { query: "?raw", import: "default", eager: true });
 
@@ -22,5 +22,5 @@ export function Illustration({ id }: { id: string }) {
 }
 
 export function Glass({ recipe }: { recipe: Recipe }) {
-  return <Illustration id={recipe.id.startsWith("custom-") ? "martini" : recipe.id} />;
+  return <Illustration id={recipe.id.startsWith("custom-") ? cocktailIllustration(recipe.illustration) ?? "martini" : recipe.id} />;
 }

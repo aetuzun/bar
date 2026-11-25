@@ -108,7 +108,18 @@ export const seed: Item[] = [
     "Orange liqueur",
   ),
 ];
+export const cocktailIllustrations = [
+  ["martini", "Martini glass"], ["old-fashioned", "Rocks glass"],
+  ["sidecar", "Coupe"], ["highball", "Highball"],
+  ["hugo", "Wine glass"], ["french-75", "Flute"],
+  ["moscow-mule", "Copper mug"], ["margarita", "Coupe with lime"],
+] as const;
+export type CocktailIllustration = typeof cocktailIllustrations[number][0];
+export const cocktailIllustration = (value: unknown): CocktailIllustration | undefined =>
+  cocktailIllustrations.find(([id]) => id === value)?.[0];
+
 export type Recipe = {
+  illustration?: CocktailIllustration;
   id: string;
   name: string;
   style: string;

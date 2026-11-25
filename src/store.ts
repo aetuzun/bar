@@ -1,4 +1,5 @@
 import {
+  cocktailIllustration,
   demoMenu,
   groups,
   recipes,
@@ -20,7 +21,7 @@ export type Snapshot = {
   pours?: Pour[];
   cocktails?: GuestCocktail[];
 };
-export type GuestCocktail = { id: string; name: string; style: string; ingredients: string[] };
+export type GuestCocktail = { id: string; name: string; style: string; ingredients: string[]; illustration?: Recipe["illustration"] };
 export type SavedMenu = Pick<BarState, "draft" | "title" | "footer" | "scene"> & { id: string; name: string; savedByUser?: true };
 export type BarState = {
   items: Item[];
@@ -76,6 +77,7 @@ function readSnapshot(
     typeof drink.name === "string" && typeof drink.style === "string" &&
     Array.isArray(drink.ingredients) && drink.ingredients.every((kind: unknown) => typeof kind === "string")
   ).map(drink => ({ id: drink.id, name: drink.name.slice(0, 80), style: drink.style.slice(0, 120),
+    illustration: cocktailIllustration(drink.illustration),
     ingredients: drink.ingredients.slice(0, 12).map((kind: string) => kind.slice(0, 80)) })) : [];
   return {
     ids: validIds(
@@ -98,6 +100,7 @@ export function publishSnapshot(state: BarState): Snapshot {
     return "p" + (pours.length - 1);
   });
   const cocktails = state.customRecipes.filter(recipe => ids.includes(recipe.id)).map(recipe => ({
+    illustration: recipe.illustration,
     id: recipe.id, name: recipe.name, style: recipe.style, ingredients: recipe.ingredients.map(([kind]) => kind),
   }));
   return readSnapshot(ids, state.title, pours, state.footer, state.scene, cocktails);
