@@ -253,12 +253,13 @@ function Editor({
     </dialog>
   );
 }
-function AddPicker({ label, caption, placeholder, choose, create, children }: {
+function AddPicker({ label, caption, placeholder, choose, create, groupStatuses, children }: {
   label: string;
   caption: string;
   placeholder: string;
   choose: (id: string) => void;
   create?: () => void;
+  groupStatuses?: Partial<Record<string, "available" | "low" | "unavailable">>;
   children: React.ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -275,12 +276,14 @@ function AddPicker({ label, caption, placeholder, choose, create, children }: {
         <button className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
       </div>
       <div className="entry-sheet-body">
-      {groups.map(group => <section key={group.label}>
-        <h3>{group.label}</h3>
+      {groups.map(group => {
+        const status = groupStatuses?.[group.label ?? ""];
+        return <section key={group.label}>
+        <h3 className={status ? "availability dotted " + status : undefined}>{group.label}</h3>
         <div className="wizard-choices">{group.options.map(o =>
           <button key={o.value} disabled={o.disabled} onClick={() => { dialog.current?.close(); choose(o.value); }}>{o.label}</button>
         )}</div>
-      </section>)}
+      </section>; })}
       {!groups.length && <p>{placeholder}</p>}
       {create && <button type="button" className="picker-create" onClick={() => {
         dialog.current?.close();
@@ -730,6 +733,7 @@ function Recipes({
         ))}
       </div>
         <AddPicker label="Add cocktail" caption="Cocktail" create={() => setEditing("new")}
+          groupStatuses={{ "Ready now": "available", "Missing 1": "low", "Missing 2 or more": "unavailable" }}
           placeholder={remaining.length ? "Choose a cocktail…" : "All cocktails added"} choose={id => {
           setOrder([...state.recipeOrder, id]);
           setFilter("All");
