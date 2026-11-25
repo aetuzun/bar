@@ -919,7 +919,7 @@ dialog h2:focus { outline: none; }
 /* Keep room for letter ink beyond the advance width before the wordmark folds. */
 .brand-fold > span::after { content: ""; display: inline-block; width: .09em; }
 .brand-dot {
-  margin-inline: .15em .18em;
+  margin-inline: .065em .10em;
   transition: margin 340ms cubic-bezier(.22,.72,.18,1);
 }
 :is(.site-header, .bar-intro)[data-compact="true"] .brand-fold {
@@ -1158,8 +1158,8 @@ dialog .step-count { margin-top: 0; }
 .menu-settings summary, .publish h2 { font-size: 1.25rem; font-weight: 650; letter-spacing: -.045em; }
 .menu-settings summary { display: flex; justify-content: space-between; align-items: center; min-height: 52px; list-style: none; cursor: pointer; }
 .menu-settings summary::-webkit-details-marker { display: none; }
-.menu-settings summary::after { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 1.5px 1.5px 0 0; margin-right: 4px; transform: rotate(45deg); }
-.menu-settings[open] summary::after { transform: rotate(135deg); }
+.menu-settings summary::after { content: "+"; font: 400 1.2rem Arial, sans-serif; }
+.menu-settings[open] summary::after { content: "−"; }
 main:has(> .publish) { padding-bottom: 8px; }
 .publish { margin: 4px 0 0; }
 .publish .actions { gap: clamp(9px, 2.7vw, 16px); }
@@ -1248,3 +1248,30 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
   .stock-filter-bar:has(.stock-search-control[data-open="true"]) .filters { visibility: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .stock-search-control { transition: none; } }
+@media (min-width: 651px) {
+  .filter-add { inset-inline-end: max(20px, calc((100% - var(--width)) / 2)); }
+  .stock-notice[data-undo="true"] { inset-inline-start: max(20px, calc((100% - var(--width)) / 2)); }
+}
+.stockrow .status:focus-visible, .site-header nav a:focus-visible {
+  outline: none;
+  text-decoration: underline dotted;
+  text-underline-offset: .23em;
+}
+.collection-action, .recipe-personal-actions button {
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+.collection-action { margin-block: 4px; }
+.recipe-personal-actions { display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 10px; }
+.custom-ingredients { border: 0; margin: 14px 0; padding: 0; min-width: 0; }
+.custom-ingredient { display: grid; grid-template-columns: minmax(0, 1fr) 62px 70px 34px; gap: 5px; margin-top: 6px; }
+.entry-sheet .custom-ingredient :is(input, select) { padding-inline: 6px; }
+.entry-sheet textarea { width: 100%; border: 1px solid var(--field-line); border-radius: 12px; background: var(--field-fill); color: inherit; font: inherit; padding: 10px; }
+.saved-menus { padding-block: 0 12px; }
+.saved-menus form, .saved-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.saved-menus form input { max-width: 21rem; }
+.saved-menus .collection-action { flex-shrink: 0; }
+.saved-menu-row span { overflow-wrap: anywhere; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 6px; font-size: .85rem; font-weight: 400; }
+.footer-links a { text-underline-offset: .2em; padding-block: 8px; }

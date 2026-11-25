@@ -5,6 +5,7 @@ import {
   seed,
   type Group,
   type Item,
+  type Recipe,
 } from "./data";
 import { describe, pourStyles, type Pour } from "./pours";
 export const animations = { shaker: "Cocktail shaker", bartender: "Behind the bar", toast: "A toast for two", dance: "Dance partners", friends: "Cheers with friends", family: "Family high-five" } as const;
@@ -17,7 +18,10 @@ export type Snapshot = {
   footer?: string;
   scene?: Scene;
   pours?: Pour[];
+  cocktails?: GuestCocktail[];
 };
+export type GuestCocktail = { id: string; name: string; style: string; ingredients: string[] };
+export type SavedMenu = Pick<BarState, "draft" | "title" | "footer" | "scene"> & { id: string; name: string };
 export type BarState = {
   items: Item[];
   draft: string[];
@@ -26,6 +30,9 @@ export type BarState = {
   footer: string;
   scene?: Scene;
   published: Snapshot | null;
+  customRecipes: Recipe[];
+  favorites: string[];
+  savedMenus: SavedMenu[];
 };
 const key = "the-home-bar.beta.v1";
 export const defaultFooter = "Enjoy!";
@@ -51,6 +58,7 @@ function readSnapshot(
   raw: unknown,
   footer?: unknown,
   scene?: unknown,
+  custom?: unknown,
 ): Snapshot {
   const pours: Pour[] =
     Array.isArray(raw) &&
@@ -63,15 +71,22 @@ function readSnapshot(
     )
       ? raw.map((p) => ({ name: p.name, style: p.style }))
       : [];
+  const cocktails: GuestCocktail[] = Array.isArray(custom) ? custom.slice(0, 100).filter(drink =>
+    drink && typeof drink.id === "string" && /^custom-[\da-f-]{36}$/.test(drink.id) &&
+    typeof drink.name === "string" && typeof drink.style === "string" &&
+    Array.isArray(drink.ingredients) && drink.ingredients.every((kind: unknown) => typeof kind === "string")
+  ).map(drink => ({ id: drink.id, name: drink.name.slice(0, 80), style: drink.style.slice(0, 120),
+    ingredients: drink.ingredients.slice(0, 12).map((kind: string) => kind.slice(0, 80)) })) : [];
   return {
     ids: validIds(
       ids,
-      pours.map((_, i) => "p" + i),
+      [...pours.map((_, i) => "p" + i), ...cocktails.map(drink => drink.id)],
     ),
     title: titleOf(title),
     scene: sceneOf(scene),
     ...(typeof footer === "string" ? { footer: footer.slice(0, 100) } : {}),
     ...(pours.length ? { pours } : {}),
+    ...(cocktails.length ? { cocktails } : {}),
   };
 }
 export function publishSnapshot(state: BarState): Snapshot {
@@ -82,7 +97,10 @@ export function publishSnapshot(state: BarState): Snapshot {
     pours.push(describe(item));
     return "p" + (pours.length - 1);
   });
-  return readSnapshot(ids, state.title, pours, state.footer, state.scene);
+  const cocktails = state.customRecipes.filter(recipe => ids.includes(recipe.id)).map(recipe => ({
+    id: recipe.id, name: recipe.name, style: recipe.style, ingredients: recipe.ingredients.map(([kind]) => kind),
+  }));
+  return readSnapshot(ids, state.title, pours, state.footer, state.scene, cocktails);
 }
 export function guestMenu(hash: string): Snapshot {
   if (hash === "#guest") return { ids: demoMenu, title: "Menu" };
@@ -94,7 +112,9 @@ export function guestMenu(hash: string): Snapshot {
   } catch {
     pours = [];
   }
-  return readSnapshot(ids.split(","), params.get("t"), pours, params.get("f"), params.get("a"));
+  let cocktails: unknown;
+  try { cocktails = JSON.parse(params.get("c") || "[]"); } catch { cocktails = []; }
+  return readSnapshot(ids.split(","), params.get("t"), pours, params.get("f"), params.get("a"), cocktails);
 }
 export function guestUrl(snapshot: Snapshot) {
   const url = new URL(location.href);
@@ -105,6 +125,7 @@ export function guestUrl(snapshot: Snapshot) {
     params.set("f", snapshot.footer);
   if (snapshot.scene && snapshot.scene !== "shaker") params.set("a", snapshot.scene);
   if (snapshot.pours?.length) params.set("p", JSON.stringify(snapshot.pours));
+  if (snapshot.cocktails?.length) params.set("c", JSON.stringify(snapshot.cocktails));
   url.hash =
     "guest/" + snapshot.ids.join(",") + (params.size ? "?" + params : "");
   return url.href;
@@ -135,12 +156,18 @@ export const storage = {
       title: "Menu",
       footer: defaultFooter,
       published: null,
+      customRecipes: [],
+      favorites: [],
+      savedMenus: [],
     };
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return initial;
       const data = JSON.parse(raw);
       if (!Array.isArray(data.items)) return initial;
+      const customRecipes: Recipe[] = Array.isArray(data.customRecipes) ? data.customRecipes : [];
+      const customIds = customRecipes.map(recipe => recipe.id);
+      const menuIds = [...customIds, ...data.items.map((i: Item) => "pour:" + i.id)];
       const published = Array.isArray(data.published)
         ? { ids: validIds(data.published), title: "Menu" }
         : data.published
@@ -150,6 +177,7 @@ export const storage = {
               data.published.pours,
               data.published.footer,
               data.published.scene,
+              data.published.cocktails,
             )
           : null;
       return {
@@ -159,11 +187,11 @@ export const storage = {
           shoppingOrigin: String(item.shoppingOrigin) === "unconfirmed" ? "unavailable" : item.shoppingOrigin,
           group: migratedGroup(item),
         })),
-        recipeOrder: Array.isArray(data.recipeOrder) ? validIds(data.recipeOrder)
+        recipeOrder: Array.isArray(data.recipeOrder) ? validIds(data.recipeOrder, customIds)
           : validIds([...initial.recipeOrder, ...validIds(data.draft)]),
         draft: validIds(
           data.draft,
-          data.items.map((i: Item) => "pour:" + i.id),
+          menuIds,
         ),
         title: typeof data.title === "string" ? data.title : "Menu",
         footer:
@@ -173,6 +201,11 @@ export const storage = {
             : data.footer,
         scene: sceneOf(data.scene),
         published,
+        customRecipes,
+        favorites: validIds(data.favorites, customIds),
+        savedMenus: Array.isArray(data.savedMenus) ? data.savedMenus.map((menu: SavedMenu) => ({
+          ...menu, draft: validIds(menu.draft, menuIds),
+        })) : [],
       };
     } catch {
       return initial;

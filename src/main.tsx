@@ -24,11 +24,12 @@ import {
   guestUrl,
   storage,
   type BarState,
+  type Snapshot,
 } from "./store";
 import { Glass, Illustration } from "./Art";
 import "./style.css";
 
-const byId = (id: string) => recipes.find((r) => r.id === id)!;
+const libraryRecipe = (id: string) => recipes.find(r => r.id === id);
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
 function Wordmark() {
@@ -145,7 +146,13 @@ function Footer({ message = defaultFooter }: { message?: string }) {
   const today = new Date();
   const date = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return <footer ref={footer}><div className="foot-inner"><span>{message}</span>
-    <small>Beta V.1 · <time>{date}</time></small></div></footer>;
+    <small>Beta V.1 · <time>{date}</time></small>
+    <div className="footer-links" role="navigation" aria-label="About The Home Bar">
+      <a href="./guide.html">About</a>
+      <a href="./guide.html#help">Help</a>
+      <a href="./guide.html#privacy">Privacy</a>
+    </div>
+  </div></footer>;
 }
 function dismissOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
   const dialog = event.currentTarget;
@@ -285,8 +292,19 @@ function Bar({
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchControl = useRef<HTMLDivElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!searchOpen) return;
+    const dismiss = (event: Event) => {
+      if (!(event.target instanceof Node) || searchControl.current?.contains(event.target)) return;
+      setSearchOpen(false);
+      setQuery("");
+    };
+    document.addEventListener("click", dismiss);
+    return () => document.removeEventListener("click", dismiss);
+  }, [searchOpen]);
   function closeSearch() {
     setQuery("");
     setSearchOpen(false);
@@ -322,7 +340,7 @@ function Bar({
       <section className="inventory">
         <div className="filter-bar stock-filter-bar">
         <div className="filters">
-          {["All", "Low", "Shopping list"].map((g) => (
+          {["All", "Shopping list"].map((g) => (
             <button
               key={g}
               aria-pressed={filter === g}
@@ -332,7 +350,12 @@ function Bar({
             </button>
           ))}
         </div>
-        <div className="stock-search-control" data-open={searchOpen} onKeyDown={e => {
+        <div ref={searchControl} className="stock-search-control" data-open={searchOpen} onBlur={e => {
+          if (searchOpen && !query && !e.currentTarget.contains(e.relatedTarget)) {
+            setSearchOpen(false);
+            setQuery("");
+          }
+        }} onKeyDown={e => {
           if (e.key === "Escape" && searchOpen) closeSearch();
         }}>
           <input ref={searchInput} id="stock-search" type="search" className="stock-search"
@@ -341,6 +364,7 @@ function Bar({
             value={query} onChange={e => setQuery(e.target.value)} />
           <button ref={searchButton} type="button" aria-label={searchOpen ? "Close search" : "Search inventory"}
             aria-controls="stock-search" aria-expanded={searchOpen}
+            onPointerDown={e => { if (searchOpen) e.preventDefault(); }}
             onClick={() => {
               if (searchOpen) {
                 closeSearch();
@@ -376,7 +400,7 @@ function Bar({
                 (g === "Shopping list"
                   ? onShoppingList(i)
                   : i.group === g && !onShoppingList(i)) &&
-                matches(i) && (filter === "All" || g === filter || (filter === "Low" && i.status === "Low")),
+                matches(i) && (filter === "All" || g === filter),
             );
             if (!rows.length && !(g === "Shopping list" && filter === g)) return null;
             const expandable = !query.trim() && filter === "All";
@@ -401,7 +425,7 @@ function Bar({
             );
           })}
         </div>
-        {!state.items.some(i => matches(i) && (filter === "All" || (filter === "Low" ? i.status === "Low" : onShoppingList(i)))) && filter !== "Shopping list" && <p>{query ? "No matching ingredients." : filter === "Low" ? "Nothing is running low." : "Use + to add your first ingredient."}</p>}
+        {filter === "All" && !state.items.some(matches) && <p>{query ? "No matching ingredients." : "Use + to add your first ingredient."}</p>}
         <p className="stock-notice" data-undo={!!previous} role="status">{notice}{previous && <button className="undo-stock" onClick={() => {
           update({ ...state, items: state.items.map(i => i.id === previous.id ? previous : i) });
           setNotice(previous.name + " · " + previous.status);
@@ -455,14 +479,71 @@ function Availability({
     </p>
   );
 }
+function CocktailEditor({ recipe, items, close, save }: {
+  recipe?: Recipe;
+  items: Item[];
+  close: () => void;
+  save: (recipe: Recipe) => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [ingredients, setIngredients] = useState<Recipe["ingredients"]>(recipe?.ingredients || [["", 30, "ml"]]);
+  const kinds = [...new Set([...ingredientKinds, ...items.map(item => item.kind),
+    ...ingredients.map(([kind]) => kind)].filter(Boolean))].sort();
+  useEffect(() => { dialog.current?.showModal(); }, []);
+  function setIngredient(index: number, ingredient: Recipe["ingredients"][number]) {
+    setIngredients(rows => rows.map((row, i) => index === i ? ingredient : row));
+  }
+  return <dialog ref={dialog} className="entry-sheet" aria-label={recipe ? "Edit cocktail" : "Create cocktail"}
+    onClose={close} onClick={dismissOnBackdrop}>
+    <form onSubmit={event => {
+      event.preventDefault();
+      const fields = new FormData(event.currentTarget);
+      const field = (key: string) => String(fields.get(key) || "").trim();
+      if (!field("name") || !field("steps") || ingredients.some(([kind, quantity]) => !kind || !Number.isFinite(quantity) || quantity <= 0)) return;
+      save({ id: recipe?.id || "custom-" + crypto.randomUUID(), name: field("name"), style: field("style"),
+        glass: "martini", color: "#d9cf9d", ingredients, steps: field("steps"), garnish: field("garnish") || "None" });
+    }}>
+      <div className="picker-head entry-sheet-head">
+        <h2>{recipe ? "Edit cocktail" : "Create cocktail"}</h2>
+        <button type="button" className="card-remove" aria-label="Close" onClick={() => dialog.current?.close()}><span /></button>
+      </div>
+      <div className="entry-sheet-body">
+        <label>Name<input name="name" required maxLength={80} defaultValue={recipe?.name} /></label>
+        <label>Tasting note (optional)<input name="style" maxLength={120} defaultValue={recipe?.style} /></label>
+        <fieldset className="custom-ingredients"><legend>Ingredients</legend>
+          {ingredients.map(([kind, quantity, unit], index) => <div className="custom-ingredient" key={index}>
+            <select aria-label={`Ingredient ${index + 1}`} value={kind} required onChange={e => setIngredient(index, [e.target.value, quantity, unit])}>
+              <option value="">Choose an ingredient</option>
+              {kinds.map(option => <option key={option}>{option}</option>)}
+            </select>
+            <input aria-label={`Quantity ${index + 1}`} type="number" min=".01" max="10000" step="any" required
+              value={quantity || ""} onChange={e => setIngredient(index, [kind, e.target.valueAsNumber, unit])} />
+            <select aria-label={`Unit ${index + 1}`} value={unit} onChange={e => setIngredient(index, [kind, quantity, e.target.value as typeof unit])}>
+              {["ml", "leaves", "wedge", "dashes"].map(option => <option key={option}>{option}</option>)}
+            </select>
+            <button type="button" aria-label={`Remove ingredient ${index + 1}`} disabled={ingredients.length === 1}
+              onClick={() => setIngredients(rows => rows.filter((_, i) => i !== index))}>×</button>
+          </div>)}
+          <button type="button" className="collection-action" disabled={ingredients.length >= 12}
+            onClick={() => setIngredients(rows => [...rows, ["", 30, "ml"]])}>+ Ingredient</button>
+        </fieldset>
+        <label>Method<textarea name="steps" required maxLength={1200} defaultValue={recipe?.steps} rows={3} /></label>
+        <label>Garnish (optional)<input name="garnish" maxLength={100} defaultValue={recipe?.garnish} /></label>
+        <div className="actions"><button className="solid">Save cocktail</button></div>
+      </div>
+    </form>
+  </dialog>;
+}
 function RecipeEntry({
   r, remove,
-  state,
+  state, favorite, edit,
   toggle, shop,
 }: {
   shop: (recipeId: string, kinds: string[], remove: boolean) => void;
   r: Recipe; remove: () => void;
   state: BarState;
+  favorite: () => void;
+  edit?: () => void;
   toggle: (id: string) => void;
 }) {
   const result = availability(r, state.items),
@@ -485,14 +566,20 @@ function RecipeEntry({
         <button className="card-remove" aria-label="Close recipe" onClick={() => dialog.current?.close()}><span /></button>
         <div className="prep-art"><Glass recipe={r} /></div>
         <h2>{r.name}</h2>
+        <div className="recipe-personal-actions">
+          <button aria-pressed={state.favorites.includes(r.id)} onClick={favorite}>
+            {state.favorites.includes(r.id) ? "Remove from favorites" : "Save to favorites"}
+          </button>
+          {edit && <button onClick={() => { dialog.current?.close(); edit(); }}>Edit recipe</button>}
+        </div>
       <section className="measures">
         <div className="label-row">
           <h3>Ingredients</h3>
           <span>Serves 1</span>
         </div>
         <ul className="ingredients">
-          {r.ingredients.map(([kind, amount, unit]) => (
-            <li key={kind}>
+          {r.ingredients.map(([kind, amount, unit], index) => (
+            <li key={index}>
               <span>{unit === "ml" && (kind === "Lime" || kind === "Lemon") ? kind + " juice" : kind}</span>
               <span>{measure(amount, unit)}</span>
             </li>
@@ -535,23 +622,28 @@ function RecipeEntry({
 }
 function Recipes({
   state,
-  toggle, shop, setOrder,
+  toggle, shop, setOrder, update,
 }: {
   state: BarState;
+  update: (state: BarState) => void;
   setOrder: (ids: string[]) => void;
   shop: (recipeId: string, kinds: string[], remove: boolean) => void;
   toggle: (id: string) => void;
 }) {
   const [filter, setFilter] = useState("All");
-  const list = state.recipeOrder.map(byId).filter(
+  const [editing, setEditing] = useState<Recipe | "new" | null>(null);
+  const library = [...recipes, ...state.customRecipes];
+  const list = (filter === "Favorites" ? state.favorites : state.recipeOrder)
+    .map(id => library.find(recipe => recipe.id === id)!).filter(
     (r) =>
       filter === "All" ||
+      filter === "Favorites" ||
       families[r.id] === filter ||
       (filter === "Ready now" && availability(r, state.items).ready) ||
       (filter === "Missing 1" &&
         availability(r, state.items).missing.length === 1),
   );
-  const remaining = recipes.filter(r => !state.recipeOrder.includes(r.id)).sort((a,b) => a.name.localeCompare(b.name));
+  const remaining = library.filter(r => !state.recipeOrder.includes(r.id)).sort((a,b) => a.name.localeCompare(b.name));
   const choices = [
     { label: "Ready now", drinks: [] as Recipe[] },
     { label: "Missing 1", drinks: [] as Recipe[] },
@@ -570,6 +662,7 @@ function Recipes({
       <div className="filters">
         {[
           "All",
+          "Favorites",
           "Ready now",
           "Missing 1",
           ...new Set(Object.values(families)),
@@ -594,11 +687,26 @@ function Recipes({
           ))}
         </AddPicker>
       </div>
-      <CardList order={state.recipeOrder} visible={list.map(r => r.id)} save={setOrder}>
+      <button className="collection-action" onClick={() => setEditing("new")}>+ Create cocktail</button>
+      <CardList order={filter === "Favorites" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
+        save={ids => filter === "Favorites" ? update({ ...state, favorites: ids }) : setOrder(ids)}>
         {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
-          remove={() => setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
+          edit={r.id.startsWith("custom-") ? () => setEditing(r) : undefined}
+          favorite={() => update({ ...state, favorites: state.favorites.includes(r.id)
+            ? state.favorites.filter(id => id !== r.id) : [...state.favorites, r.id] })}
+          remove={() => filter === "Favorites"
+            ? update({ ...state, favorites: state.favorites.filter(id => id !== r.id) })
+            : setOrder(state.recipeOrder.filter(id => id !== r.id))} />)}
       </CardList>
-      {!list.length && <p>{state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+      {!list.length && <p>{filter === "Favorites" ? "Save a cocktail from its recipe to find it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+      {editing && <CocktailEditor recipe={editing === "new" ? undefined : editing} items={state.items} close={() => setEditing(null)}
+        save={recipe => {
+          update({ ...state, customRecipes: editing === "new" ? [...state.customRecipes, recipe] :
+            state.customRecipes.map(item => item.id === recipe.id ? recipe : item),
+            recipeOrder: state.recipeOrder.includes(recipe.id) ? state.recipeOrder : [...state.recipeOrder, recipe.id] });
+          setFilter("All");
+          setEditing(null);
+        }} />}
 
     </>
   );
@@ -618,6 +726,16 @@ function MenuDrink({ r }: { r: Recipe }) {
       </div>
     </>
   );
+}
+function GuestCustomDrink({ drink }: { drink: NonNullable<Snapshot["cocktails"]>[number] }) {
+  return <>
+    <div className="drink-art"><Illustration id="martini" /></div>
+    <div>
+      <h2>{drink.name}</h2>
+      <p className="flavor">{drink.style}</p>
+      <p className="composition">{drink.ingredients.join(" · ")}</p>
+    </div>
+  </>;
 }
 function useMenuFilter(ids: string[], category: (id: string) => string) {
   const [choice, setChoice] = useState("All");
@@ -647,21 +765,23 @@ function pourCategory(style: Pour["style"]) {
 }
 function menuSections(ids: string[], pour: (id: string) => Pour) {
   const sections = ["Cocktails", "Whisky", "Wine"].map(name => ({ name, ids: [] as string[] }));
-  for (const id of ids) sections[byId(id) ? 0 : pour(id).style === "Whisky" ? 1 : 2].ids.push(id);
+  for (const id of ids) sections[libraryRecipe(id) || id.startsWith("custom-") ? 0 : pour(id).style === "Whisky" ? 1 : 2].ids.push(id);
   return sections.filter(section => section.ids.length);
 }
 function GuestList({
   ids,
   title,
   pours = [],
+  cocktails = [],
 }: {
   ids: string[];
   title: string;
   pours?: Pour[];
+  cocktails?: NonNullable<Snapshot["cocktails"]>;
 }) {
   const { visible, filters } = useMenuFilter(
     ids,
-    (id) => families[id] || pourCategory(pours[Number(id.slice(1))].style),
+    (id) => families[id] || (id.startsWith("custom-") ? "Custom" : pourCategory(pours[Number(id.slice(1))].style)),
   );
   return (
     <>
@@ -672,8 +792,10 @@ function GuestList({
           <h2>{section.name}</h2>
           <div className="menu-track" tabIndex={0} role="region" aria-label={section.name}>{section.ids.map((id) => (
           <article className="menurow" key={id}>
-            {byId(id) ? (
-              <MenuDrink r={byId(id)} />
+            {libraryRecipe(id) ? (
+              <MenuDrink r={libraryRecipe(id)!} />
+            ) : id.startsWith("custom-") ? (
+              <GuestCustomDrink drink={cocktails.find(drink => drink.id === id)!} />
             ) : (
               <PourRow pour={pours[Number(id.slice(1))]} />
             )}
@@ -694,13 +816,16 @@ function Menu({
   toggle: (id: string) => void;
 }) {
   const [notice, setNotice] = useState("");
+  const [savedName, setSavedName] = useState("");
+  const menuLibrary = [...recipes, ...state.customRecipes];
+  const byId = (id: string) => menuLibrary.find(recipe => recipe.id === id)!;
   const draftUrl = guestUrl(publishSnapshot(state));
   const published = !!state.published && guestUrl(state.published) === draftUrl;
   useEffect(() => setNotice(""), [draftUrl]);
   const bottle = (id: string) => state.items.find((i) => "pour:" + i.id === id);
   const { visible, filters, resetFilter } = useMenuFilter(
     state.draft,
-    (id) => families[id] || pourCategory(describe(bottle(id)!).style),
+    (id) => families[id] || (id.startsWith("custom-") ? "Custom" : pourCategory(describe(bottle(id)!).style)),
   );
   const unavailable = state.draft.some((id) => {
     const item = bottle(id);
@@ -718,7 +843,7 @@ function Menu({
           resetFilter();
         }}>
           <optgroup label="Cocktails">
-            {recipes.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
+            {menuLibrary.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
               .map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
           </optgroup>
           {["Whiskies", "Wine & sparkling"].map((group) => (
@@ -777,6 +902,36 @@ function Menu({
         </p>
       )}
 
+      <details className="menu-settings"><summary>Saved menus</summary>
+        <div className="saved-menus">
+          <form onSubmit={event => {
+            event.preventDefault();
+            const name = savedName.trim();
+            if (!name) return;
+            const { draft, title, footer, scene } = state;
+            update({ ...state, savedMenus: [...state.savedMenus, { id: crypto.randomUUID(), name, draft, title, footer, scene }] });
+            setSavedName("");
+          }}>
+            <label className="visually-hidden" htmlFor="saved-menu-name">Menu collection name</label>
+            <input id="saved-menu-name" value={savedName} onChange={event => setSavedName(event.target.value)}
+              required maxLength={80} placeholder="Name this draft" />
+            <button className="collection-action">Save a copy</button>
+          </form>
+          {state.savedMenus.map(menu => <div className="saved-menu-row" key={menu.id}>
+            <span>{menu.name}</span>
+            <button className="collection-action" onClick={() => {
+              const { draft, title, footer, scene } = state;
+              const alreadySaved = state.savedMenus.some(copy => copy.title === title && copy.footer === footer &&
+                copy.scene === scene && copy.draft.join() === draft.join());
+              const savedMenus = draft.length && !alreadySaved
+                ? [...state.savedMenus, { id: crypto.randomUUID(), name: (title || "Menu") + " (previous draft)", draft, title, footer, scene }]
+                : state.savedMenus;
+              update({ ...state, draft: menu.draft, title: menu.title, footer: menu.footer, scene: menu.scene, savedMenus });
+              resetFilter();
+            }}>Load as draft</button>
+          </div>)}
+        </div>
+      </details>
       <details className="menu-settings"><summary>Edit menu</summary><div className="settings-fields">
       <div className="title-field guest-animation-field"><span>Guest animation</span>
         <Dropdown label="Guest animation" value={state.scene || "shaker"} onChange={scene => update({ ...state, scene: scene as Scene })}>
@@ -896,7 +1051,7 @@ function Manager({ route }: { route: string }) {
           <Recipes setOrder={recipeOrder => {
             const removed = state.recipeOrder.find(id => !recipeOrder.includes(id));
             update({ ...state, recipeOrder, items: removed ? releaseShopping(state.items, removed) : state.items });
-          }} shop={shop} state={state} toggle={toggle} />
+          }} shop={shop} state={state} toggle={toggle} update={update} />
         ) : route === "menu" ? (
           <Menu state={state} update={update} toggle={toggle} />
         ) : (

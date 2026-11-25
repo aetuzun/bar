@@ -22,5 +22,5 @@ export function Illustration({ id }: { id: string }) {
 }
 
 export function Glass({ recipe }: { recipe: Recipe }) {
-  return <Illustration id={recipe.id} />;
+  return <Illustration id={recipe.id.startsWith("custom-") ? "martini" : recipe.id} />;
 }
