@@ -33,6 +33,10 @@ import "./style.css";
 const libraryRecipe = (id: string) => recipes.find(r => r.id === id);
 const tabs = ["Bar", "Recipes", "Menu"] as const;
 const slug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
+function EmptySuggestions({ prompt, names }: { prompt: string; names?: string[] }) {
+  const examples = [...new Set(names)].slice(0, 4);
+  return <p className="empty-suggestions">{prompt}{examples.length > 0 && <> {examples.join(" · ")}</>}</p>;
+}
 function Wordmark() {
   return (
     <span className="brand-letters" aria-hidden="true">
@@ -335,6 +339,10 @@ function Bar({
     return () => clearTimeout(timer);
   }, [previous]);
   const matches = (i: Item) => (i.name + " " + i.kind).toLowerCase().includes(query.trim().toLowerCase());
+  const shoppingSuggestions = [...recipes, ...state.customRecipes]
+    .filter(recipe => state.recipeOrder.includes(recipe.id))
+    .flatMap(recipe => availability(recipe, state.items).missing)
+    .filter(kind => !state.items.some(item => item.kind === kind && onShoppingList(item)));
   function changeStatus(i: Item, status: Item["status"]) {
     if (i.status === status) return;
     setPrevious({ item: i, restore: current => ({ ...current, items: current.items.map(row => row.id === i.id ? i : row) }) });
@@ -440,7 +448,9 @@ function Bar({
                   {label}<span className="disclosure" aria-hidden="true">{open ? "−" : "+"}</span>
                 </button> : label}</h2>
                 {open && <div>
-                  {!rows.length && <p>Your shopping list is empty.</p>}
+                  {!rows.length && <EmptySuggestions
+                    prompt={query.trim() ? "No shopping list matches. Try adding" : "Add to your shopping list"}
+                    names={shoppingSuggestions.length ? shoppingSuggestions : ["Lime", "Soda water", "Simple syrup"]} />}
                   {rows.map(i => <div className="stockrow" key={i.id}>
                     <button className="stock-name" aria-label={"Edit " + i.name + ", " + i.status} onClick={() => setEdit(i)}>
                       {i.name}<small>{i.kind !== i.name ? i.kind : ""}{i.openedOn && " · Opened " + i.openedOn}</small>
@@ -458,7 +468,9 @@ function Bar({
             );
           })}
         </div>
-        {filter === "All" && !state.items.some(matches) && <p>{query ? "No matching ingredients." : "Use + to add your first ingredient."}</p>}
+        {filter === "All" && !state.items.some(matches) && <EmptySuggestions
+          prompt={query.trim() ? "No matches. Try adding" : "Start your bar with"}
+          names={["Gin", "Bourbon", "Soda water", "Lime"]} />}
         <p className="stock-notice" data-undo={!!previous} role="status">{notice}{previous && <button className="undo-stock" onClick={() => {
           update(previous.restore(state));
           setNotice(previous.item.name + " · " + previous.item.status);
@@ -709,6 +721,10 @@ function Recipes({
     const { missing } = availability(recipe, state.items);
     choices[Math.min(missing.length, 2)].drinks.push(recipe);
   }
+  const recipeSuggestions = filter === "Saved" ? library.filter(r => state.recipeOrder.includes(r.id))
+    : filter === "Ready now" ? choices[0].drinks
+    : filter === "Missing 1" ? choices[1].drinks
+    : remaining.filter(r => filter === "All" || families[r.id] === filter);
   return (
     <>
       <div className="pagehead">
@@ -753,7 +769,13 @@ function Recipes({
             : update({ ...state, favorites: [...state.favorites, r.id] })}
           remove={() => remove(r, filter === "Saved" ? "favorites" : "recipeOrder")} />)}
       </CardList>
-      {!list.length && <p>{filter === "Saved" ? "Tap a heart on a cocktail to save it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
+      {!list.length && <EmptySuggestions
+        prompt={filter === "Saved"
+          ? recipeSuggestions.length ? "Tap a heart to save a cocktail" : "Add a cocktail, then tap its heart to save it."
+          : recipeSuggestions.length ? "Try adding" : filter === "Ready now" ? "Stock your bar to unlock more recipes."
+          : filter === "Missing 1" ? "No cocktails are one ingredient away. Browse All to see what’s missing."
+          : "Use + Cocktail to browse recipes or create your own."}
+        names={recipeSuggestions.map(recipe => recipe.name)} />}
       {editing && <CocktailEditor recipe={editing === "new" ? undefined : editing} items={state.items} close={() => setEditing(null)}
         save={recipe => {
           update({ ...state, customRecipes: editing === "new" ? [...state.customRecipes, recipe] :
@@ -857,7 +879,7 @@ function GuestList({
           </article>
         ))}</div></section>)}
       </div>
-      {!ids.length && <p>No drinks on this menu.</p>}
+      {!ids.length && <EmptySuggestions prompt="No drinks on this menu yet." />}
     </>
   );
 }
@@ -904,6 +926,9 @@ function Menu({
     const item = bottle(id);
     return item ? !inStock(item) : !availability(byId(id), state.items).ready;
   });
+  const addableCocktails = menuLibrary.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready);
+  const menuSuggestions = [...addableCocktails.map(recipe => recipe.name),
+    ...state.items.filter(item => eligible(item) && inStock(item) && !state.draft.includes("pour:" + item.id)).map(item => item.name)];
   return (
     <>
       <div className="pagehead">
@@ -916,7 +941,7 @@ function Menu({
           resetFilter();
         }}>
           <optgroup label="Cocktails">
-            {menuLibrary.filter(recipe => !state.draft.includes(recipe.id) && availability(recipe, state.items).ready)
+            {addableCocktails
               .map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
           </optgroup>
           {["Whiskies", "Wine & sparkling"].map((group) => (
@@ -969,11 +994,10 @@ function Menu({
         );
       })}
       </CardList></div></section>)}
-      {!state.draft.length && (
-        <p>
-          Your selection is empty. <a href="#recipes">Browse recipes</a>
-        </p>
-      )}
+      {!visible.length && <EmptySuggestions
+        prompt={menuSuggestions.length
+          ? "Try adding" : "Stock your bar to add cocktails, whisky, or wine to your menu."}
+        names={menuSuggestions} />}
 
       <details className="menu-settings"><summary>Saved menus</summary>
         <div className="saved-menus">

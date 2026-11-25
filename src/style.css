@@ -46,6 +46,7 @@ main {
   padding-bottom: 44px;
 }
 main:has(> .recipe-preview) { padding-bottom: 18px; }
+.empty-suggestions { margin-block: 18px 0; color: var(--muted); font-size: .92rem; line-height: 1.5; }
 a,
 button,
 input,
