@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <meta name="description" content="Learn how The Home Bar tracks cocktail ingredients, saves recipes and creates a guest menu with a QR code.">
   <title>About, Help and Privacy · The Home Bar</title>
+  <script>
+    const page = { "#help": "help.html", "#privacy": "privacy.html" }[location.hash] || "about.html";
+    location.replace(new URL(page, location.href));
+  </script>
   <style>
     body { margin: 0 auto; padding: 26px 20px 36px; max-width: 940px; font: 1rem/1.55 "Helvetica Neue", Arial, sans-serif; color: #111; }
     header { border-bottom: 1px solid; padding-bottom: 20px; font-weight: 700; }

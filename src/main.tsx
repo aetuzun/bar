@@ -40,7 +40,7 @@ function Wordmark() {
           </span>
   );
 }
-function Header({ route, guest = false, scene = "shaker" }: { route: string; guest?: boolean; scene?: Scene }) {
+function Header({ route, guest = false, scene = "shaker", appPath = "" }: { route: string; guest?: boolean; scene?: Scene; appPath?: string }) {
   const [compact, setCompact] = useState(() => window.scrollY > 48);
   useEffect(() => {
     const update = () => setCompact(window.scrollY > 48);
@@ -60,7 +60,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
   return (
     <header className={intro ? "site-header guest-header" : "site-header"} data-compact={compact}>
       <div className="header-inner">
-        <a className="brand" href={guest ? location.hash : "#bar"} aria-label="The Home · Bar"
+        <a className="brand" href={guest ? location.hash : appPath + "#bar"} aria-label="The Home · Bar"
           onClick={event => {
             if (guest || route === "bar") {
               event.preventDefault();
@@ -74,7 +74,7 @@ function Header({ route, guest = false, scene = "shaker" }: { route: string; gue
             {tabs.map((t) => (
               <a
                 key={t}
-                href={"#" + slug(t)}
+                href={appPath + "#" + slug(t)}
                 aria-current={route === slug(t) ? "page" : undefined}
               >
                 {t}
@@ -127,7 +127,7 @@ function BarIntro() {
     <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
-function Footer({ message = defaultFooter }: { message?: string }) {
+function Footer({ message = defaultFooter, page }: { message?: string; page?: string }) {
   const footer = useRef<HTMLElement>(null);
   useEffect(() => {
     const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
@@ -146,13 +146,14 @@ function Footer({ message = defaultFooter }: { message?: string }) {
   return <footer ref={footer}><div className="foot-inner">
     <div className="footer-signoff">
       {message.trim() && message !== defaultFooter && <span>{message}</span>}
-      <p className="footer-purpose"><strong aria-label="The Home Bar">TH·B</strong> <span>Track your bottles, mix cocktails, and share a menu.</span></p>
+      <a className="brand footer-wordmark" href="./#bar" aria-label="The Home · Bar"><Wordmark /></a>
+      <p className="footer-purpose">Track your bottles, mix cocktails, and share a menu.</p>
       <small>© {new Date().getFullYear()} The Home Bar</small>
     </div>
     <div className="footer-links" role="navigation" aria-label="Site information">
-      <a href="./guide.html">About</a>
-      <a href="./guide.html#help">Help</a>
-      <a href="./guide.html#privacy">Privacy</a>
+      {["About", "Help", "Privacy"].map(label => (
+        <a key={label} href={`./${slug(label)}.html`} aria-current={page === slug(label) ? "page" : undefined}>{label}</a>
+      ))}
     </div>
   </div></footer>;
 }
@@ -700,8 +701,7 @@ function Recipes({
           ))}
         </AddPicker>
       </div>
-      {list.length > 0 && <div className="menu-track recipe-track" tabIndex={0} role="region" aria-label="Cocktail recipes" key={filter}>
-      <CardList horizontal order={filter === "Saved" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
+      <CardList order={filter === "Saved" ? state.favorites : state.recipeOrder} visible={list.map(r => r.id)}
         save={ids => filter === "Saved" ? update({ ...state, favorites: ids }) : setOrder(ids)}>
         {list.map(r => <RecipeEntry key={r.id} r={r} state={state} toggle={toggle} shop={shop}
           edit={r.id.startsWith("custom-") ? () => setEditing(r) : undefined}
@@ -709,7 +709,6 @@ function Recipes({
             : update({ ...state, favorites: [...state.favorites, r.id] })}
           remove={() => remove(r, filter === "Saved" ? "favorites" : "recipeOrder")} />)}
       </CardList>
-      </div>}
       {!list.length && <p>{filter === "Saved" ? "Tap a heart on a cocktail to save it here." : state.recipeOrder.length ? "No matching recipes." : "Choose a cocktail to start your list."}</p>}
       {editing && <CocktailEditor recipe={editing === "new" ? undefined : editing} items={state.items} close={() => setEditing(null)}
         save={recipe => {
@@ -944,7 +943,8 @@ function Menu({
           </form>
           {savedMenus.map(savedMenuRow)}
           {previousDrafts.length > 0 && <details className="draft-recovery">
-            <summary>Recover older drafts</summary>
+            <summary>Older automatic backups</summary>
+            <p>These drafts were saved automatically by an earlier beta.</p>
             {previousDrafts.map(savedMenuRow)}
           </details>}
         </div>
@@ -1159,4 +1159,14 @@ function App() {
     />
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+if (root) {
+  createRoot(root).render(<App />);
+} else {
+  const header = document.getElementById("info-header");
+  const footer = document.getElementById("info-footer");
+  if (header && footer) {
+    createRoot(header).render(<Header route="" appPath="./" />);
+    createRoot(footer).render(<Footer page={document.body.dataset.page} />);
+  }
+}
