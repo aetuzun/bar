@@ -154,7 +154,7 @@ function Footer({ message = defaultFooter, page, guest = false }: { message?: st
         <a key={label} href={`./${slug(label)}.html`} aria-current={page === slug(label) ? "page" : undefined}>{label}</a>
       ))}
     </div>}
-    <small className="footer-copyright">© 2026 The Home.Bar. All rights reserved.</small>
+    <small className="footer-copyright">© 2026 The Home.Bar</small>
   </div></footer>;
 }
 function dismissOnBackdrop(event: MouseEvent<HTMLDialogElement>) {

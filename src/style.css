@@ -44,6 +44,7 @@ main {
   flex: 1;
   padding-bottom: 44px;
 }
+main:has(> .recipe-preview) { padding-bottom: 18px; }
 a,
 button,
 input,
@@ -1306,15 +1307,15 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
 .stock-notice .undo-stock { flex-shrink: 0; }
 .footer-links { margin-top: 0; }
 .foot-inner {
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px;
-  color: var(--muted); padding-block: 23px 34px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px;
+  color: var(--muted); padding-block: 18px 22px;
 }
 #root:has(.filter-add) .foot-inner { padding-inline-end: 0; }
-.footer-signoff { display: grid; gap: 6px; font-size: .875rem; font-weight: 400; }
+.footer-signoff { display: grid; gap: 5px; font-size: .875rem; font-weight: 400; }
 .brand.footer-wordmark { justify-self: start; color: var(--muted); font-size: 1.25rem; }
 .footer-purpose { font-size: .8125rem; line-height: 1.45; }
 .footer-links { font-size: .8125rem; }
-.footer-copyright { grid-column: 1 / -1; padding-top: 11px; border-top: 1px solid var(--line); }
+.footer-copyright { grid-column: 1 / -1; justify-self: start; }
 .saved-menu-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .saved-menu-remove { width: 44px; min-height: 44px; font-size: 1.3rem; font-weight: 650; }
 .menu-settings + .menu-settings { margin-top: 0; border-top: 0; }
@@ -1334,11 +1335,8 @@ footer { box-shadow: 0 100vmax 0 100vmax var(--card); clip-path: inset(0 -100vma
   position: absolute; z-index: 2; inset: 4px 48px auto auto;
   width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
 }
-.recipe-heart svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; transform: translateX(4px); }
+.recipe-heart svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; transform: translateX(9px); }
 .recipe-heart[aria-pressed="true"] svg { fill: currentColor; }
 @media (min-width: 651px) {
   .foot-inner { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-}
-@media (max-width: 650px) {
-  #root:has(.filter-add) .foot-inner { padding-bottom: 74px; }
 }
