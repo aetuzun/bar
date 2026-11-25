@@ -154,8 +154,8 @@ export const storage = {
   load(): BarState {
     const initial = {
       items: seed,
-      recipeOrder: ["hugo", "negroni", "martini", "old-fashioned", "margarita", "daiquiri", "aperol-spritz", "whiskey-sour"],
-      draft: ["hugo", "negroni", "old-fashioned", "pour:hibiki", "pour:white", "pour:red"],
+      recipeOrder: ["aperol-spritz", "old-fashioned", "tom-collins", "whiskey-sour", "highball", "negroni", "martini", "margarita"],
+      draft: ["aperol-spritz", "old-fashioned", "tom-collins", "pour:arran", "pour:white", "pour:red"],
       title: "Menu",
       footer: defaultFooter,
       published: null,

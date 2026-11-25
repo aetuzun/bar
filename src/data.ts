@@ -36,34 +36,16 @@ const bottle = (
 export const seed: Item[] = [
   bottle("arran", "Arran Barrel Reserve", "Whiskies", "Scotch"),
   bottle(
-    "hibiki",
-    "Hibiki Harmony",
-    "Whiskies",
-    "Japanese whisky",
-  ),
-  bottle(
     "roses",
     "Four Roses Small Batch",
     "Whiskies",
     "Bourbon",
   ),
   bottle("bombay", "Bombay Sapphire", "Spirits", "Gin"),
-  bottle("campari", "Campari", "Aperitifs & liqueurs", "Campari"),
   bottle("aperol", "Aperol", "Aperitifs & liqueurs", "Aperol"),
-  bottle(
-    "germain",
-    "St-Germain",
-    "Aperitifs & liqueurs",
-    "Elderflower liqueur",
-  ),
-  bottle(
-    "cocchi",
-    "Cocchi sweet vermouth",
-    "Vermouth & fortified wine",
-    "Sweet vermouth",
-  ),
-  bottle("dolin", "Dolin Dry", "Vermouth & fortified wine", "Dry vermouth"),
   bottle("soda", "Soda water", "Mixers", "Soda water"),
+  bottle("espresso", "Espresso / strong coffee", "Mixers", "Espresso"),
+  bottle("orange", "Oranges", "Fresh & garnishes", "Orange"),
   bottle("mint", "Mint", "Fresh & garnishes", "Mint"),
   bottle("lime", "Limes", "Fresh & garnishes", "Lime"),
   bottle(
@@ -86,27 +68,8 @@ export const seed: Item[] = [
   ),
   bottle("red", "Louis Jadot Beaujolais-Villages", "Wine & sparkling", "Red wine"),
   bottle("white", "Kim Crawford Sauvignon Blanc", "Wine & sparkling", "White wine"),
-  bottle("vodka", "Absolut", "Spirits", "Vodka"),
-  bottle("rum", "Planteray 3 Stars", "Spirits", "White rum"),
   bottle("lemon", "Lemons", "Fresh & garnishes", "Lemon"),
-  bottle("tonic", "Tonic water", "Mixers", "Tonic water"),
   bottle("ice", "Ice", "Fresh & garnishes", "Ice"),
-  bottle("suze", "Suze", "Aperitifs & liqueurs", "Gentian liqueur", "Planned"),
-  bottle(
-    "lillet",
-    "Lillet Blanc",
-    "Vermouth & fortified wine",
-    "Aromatized wine",
-    "Planned",
-  ),
-  bottle("espolon", "Espolòn Blanco", "Spirits", "Tequila"),
-  bottle("del", "Del Maguey Vida", "Spirits", "Mezcal", "Planned"),
-  bottle(
-    "cointreau",
-    "Cointreau",
-    "Aperitifs & liqueurs",
-    "Orange liqueur",
-  ),
 ];
 export const cocktailIllustrations = [
   ["martini", "Martini glass"], ["old-fashioned", "Rocks glass"],
@@ -627,6 +590,11 @@ export function measure(
 }
 
 const extraKinds: Record<string, Group> = {
+  "Japanese whisky": "Whiskies", Tequila: "Spirits", Mezcal: "Spirits",
+  Campari: "Aperitifs & liqueurs", "Elderflower liqueur": "Aperitifs & liqueurs",
+  "Gentian liqueur": "Aperitifs & liqueurs", "Orange liqueur": "Aperitifs & liqueurs",
+  "Sweet vermouth": "Vermouth & fortified wine", "Dry vermouth": "Vermouth & fortified wine",
+  "Aromatized wine": "Vermouth & fortified wine",
   "Red wine": "Wine & sparkling", "White wine": "Wine & sparkling", "Rosé": "Wine & sparkling",
   "Sparkling wine": "Wine & sparkling", Sherry: "Vermouth & fortified wine", Port: "Vermouth & fortified wine",
   Brandy: "Spirits", "Aged rum": "Spirits", "Irish whiskey": "Whiskies", "Tonic water": "Mixers",
