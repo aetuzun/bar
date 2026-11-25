@@ -921,6 +921,11 @@ dialog h2:focus { outline: none; }
 /* Keep room for letter ink beyond the advance width before the wordmark folds. */
 .brand-fold > span::after { content: ""; display: inline-block; width: .09em; }
 .brand-dot {
+  flex: none;
+  inline-size: .135em;
+  block-size: .135em;
+  background: currentColor;
+  transform: translateY(-.29em);
   margin-inline: .065em .10em;
   transition: margin 340ms cubic-bezier(.22,.72,.18,1);
 }

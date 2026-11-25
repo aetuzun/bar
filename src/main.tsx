@@ -36,7 +36,7 @@ function Wordmark() {
   return (
     <span className="brand-letters" aria-hidden="true">
             T<span className="brand-fold"><span>he&nbsp;</span></span>H<span className="brand-fold"><span>ome</span></span>
-            <span className="brand-dot">·</span>B<span className="brand-fold"><span>ar</span></span>
+            <span className="brand-dot" />B<span className="brand-fold"><span>ar</span></span>
           </span>
   );
 }
