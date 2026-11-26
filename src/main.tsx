@@ -133,30 +133,55 @@ function BarIntro() {
     <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
+const toastLetters: Record<string, string[]> = {
+  G: ["0111","1000","1011","1001","0111"],
+  C: ["0111","1000","1000","1000","0111"],
+  g: ["0000","0111","1001","0111","0001","1110"],
+  o: ["0000","0110","1001","1001","0110"],
+  b: ["1000","1110","1001","1001","1110"],
+  l: ["1100","0100","0100","0100","0011"],
+  e: ["0000","0110","1111","1000","0111"],
+  h: ["1000","1110","1001","1001","1001"],
+  r: ["0000","1011","1100","1000","1000"],
+  s: ["0000","0111","0110","0001","1110"],
+  ",": ["0000","0000","0000","0000","0010","0100"],
+  "!": ["0100","0100","0100","0000","0100"],
+};
+
+function pixelToastLine(line: string) {
+  return [...line].flatMap((letter, index) =>
+    toastLetters[letter].flatMap((row, y) =>
+      [...row].map((pixel, x) => pixel === "1" ? `M${index * 5 + x} ${y}h1v1h-1z` : "")
+    )
+  ).join("");
+}
+
 function ThanksgivingToast() {
-  return <svg className="thanksgiving-toast" viewBox="0 0 360 126" aria-hidden="true">
+  return <svg className="thanksgiving-toast" viewBox="0 0 88 34" shapeRendering="crispEdges"
+    role="img" aria-label="A turkey raises a glass. Gobble, gobble. Cheers!">
     <g className="turkey-tail">
-      <ellipse cx="83" cy="73" rx="15" ry="33" fill="#b55541" transform="rotate(-54 83 73)" />
-      <ellipse cx="95" cy="57" rx="14" ry="35" fill="#df8552" transform="rotate(-30 95 57)" />
-      <ellipse cx="115" cy="52" rx="14" ry="34" fill="#efb761" transform="rotate(-5 115 52)" />
-      <ellipse cx="132" cy="59" rx="13" ry="30" fill="#d27646" transform="rotate(24 132 59)" />
+      <path fill="#ab483c" d="M4 17h2v-3h5v2h4v3h4v8H9v-3H6v-3H4z" />
+      <path fill="#da7950" d="M7 10h2V7h5v2h3v4h3v4h3v8H14v-4h-3v-4H8v-4H7z" />
+      <path fill="#efb761" d="M15 7h2V4h5v2h3v6h2v12h-8v-7h-2v-5h-2z" />
+      <path fill="#ca6844" d="M25 7h6v3h2v8h-4v7h-6V13h2z" />
     </g>
-    <path d="M102 106v10m24-10v10m-31 0h14m10 0h14" stroke="#efb761" strokeWidth="3" strokeLinecap="round" />
-    <ellipse cx="116" cy="86" rx="30" ry="24" fill="#824d38" />
-    <ellipse cx="117" cy="88" rx="17" ry="10" fill="#a96849" transform="rotate(-18 117 88)" />
-    <path d="M139 55q13 0 14 11l-6 18h-17l2-20z" fill="#b37755" />
-    <circle cx="143" cy="55" r="13" fill="#b37755" />
-    <circle cx="147" cy="52" r="2.6" fill="#16100e" />
-    <path d="m153 54 11 5-11 4z" fill="#efb761" />
-    <path d="M153 62q5 11-2 12-5-1-3-9" fill="#b55541" />
+    <path fill="#efb761" d="M17 27h2v4h3v2h-7v-2h2zm8 0h2v4h3v2h-7v-2h2z" />
+    <path fill="#824d38" d="M13 19h3v-3h11v-2h2V8h2V6h6v2h2v7h-2v7h-2v4h-4v3H17v-2h-4v-3h-2v-3h2z" />
+    <path fill="#b37755" d="M31 8h2V6h4v2h2v6h-2v4h-5v-3h-2v-5h1zM16 21h3v-2h8v2h-2v3h-3v2h-5v-2h-1z" />
+    <path fill="#efb761" d="M39 10h3v1h2v2h-5z" />
+    <path fill="#b55541" d="M39 13h2v2h-1v3h-2v-3h1z" />
+    <path fill="#16100e" d="M36 9h2v2h-2z" />
     <g className="turkey-glass">
-      <path d="M148 88q20 1 32-12" fill="none" stroke="#a96849" strokeWidth="7" strokeLinecap="round" />
-      <path d="M167 50h28l-14 15z" fill="#efb761" />
-      <path d="M165 45h32l-16 21zm16 21v13m-8 0h16" fill="none" stroke="#fff4dd" strokeWidth="2" strokeLinejoin="round" />
+      <path fill="#a96849" d="M28 22h7v-2h4v-2h4v3h-3v2h-4v2h-8z" />
+      <path fill="#fff4dd" d="M38 13h13v2h-1v2h-2v2h-2v5h3v1h-8v-1h3v-5h-2v-2h-2v-2h-2z" />
+      <path fill="#efb761" d="M41 15h8v2h-2v2h-4v-2h-2z" />
     </g>
-    <path className="turkey-spark" d="M194 26v10m-5-5h10m7 8v6m-3-3h6" fill="none" stroke="#efb761" strokeWidth="2" strokeLinecap="round" />
-    <text x="216" y="60" fill="#fff4dd" fontSize="20" fontWeight="700">Gobble, gobble.</text>
-    <text x="216" y="86" fill="#efb761" fontSize="19">Cheers!</text>
+    <path className="turkey-spark" fill="#efb761" d="M47 4h1v2h2v1h-2v2h-1V7h-2V6h2zm5 5h1v1h1v1h-1v1h-1v-1h-1v-1h1z" />
+    <path fill="#fff4dd" transform="translate(54 4)" d={pixelToastLine("Gobble,")} />
+    <path fill="#fff4dd" transform="translate(54 13)" d={pixelToastLine("gobble")} />
+    <g className="turkey-cheers" transform="translate(54 22)">
+      <path fill="#efb761" d={pixelToastLine("Cheers!")} />
+    </g>
   </svg>;
 }
 

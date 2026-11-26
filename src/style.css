@@ -124,12 +124,14 @@ nav,
   }
   .guest-header .brand { animation: guest-title var(--intro-duration) both; }
   .thanksgiving-toast { width: min(100%, 420px); max-height: 94%; animation: guest-reveal var(--intro-duration) both; }
-  .turkey-glass { transform-origin: 148px 88px; animation: turkey-toast 2.1s 2.25s 3 ease-in-out; }
-  .turkey-tail { transform-origin: 116px 88px; animation: turkey-wiggle 2.1s 2.25s 3 ease-in-out; }
+  .turkey-glass { animation: turkey-toast 2.1s 2.25s 3 steps(4, end); }
+  .turkey-tail { animation: turkey-wiggle 2.1s 2.25s 3 steps(2, end); }
   .turkey-spark { opacity: 0; animation: turkey-spark 2.1s 2.25s 3 ease-in-out; }
+  .turkey-cheers { animation: turkey-cheers 3.15s step-end both; }
 }
-@keyframes turkey-toast { 0%, 100% { transform: rotate(0); } 42%, 62% { transform: rotate(-23deg); } }
-@keyframes turkey-wiggle { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-7deg); } 58% { transform: rotate(5deg); } }
+@keyframes turkey-toast { 0%, 100% { transform: translateY(0); } 42%, 62% { transform: translateY(-4px); } }
+@keyframes turkey-wiggle { 0%, 100% { transform: translateX(0); } 42% { transform: translateX(-2px); } }
+@keyframes turkey-cheers { from { opacity: 0; } to { opacity: 1; } }
 @keyframes turkey-spark { 0%, 30%, 76%, 100% { opacity: 0; } 49%, 60% { opacity: 1; } }
 @keyframes guest-island {
   0%, 3%, 98%, 100% { clip-path: inset(0 0 calc(100% - 28px) round 16px); }
