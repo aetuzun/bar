@@ -133,56 +133,9 @@ function BarIntro() {
     <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
-const toastLetters: Record<string, string[]> = {
-  G: ["0111","1000","1011","1001","0111"],
-  C: ["0111","1000","1000","1000","0111"],
-  g: ["0000","0111","1001","0111","0001","1110"],
-  o: ["0000","0110","1001","1001","0110"],
-  b: ["1000","1110","1001","1001","1110"],
-  l: ["1100","0100","0100","0100","0011"],
-  e: ["0000","0110","1111","1000","0111"],
-  h: ["1000","1110","1001","1001","1001"],
-  r: ["0000","1011","1100","1000","1000"],
-  s: ["0000","0111","0110","0001","1110"],
-  ",": ["0000","0000","0000","0000","0010","0100"],
-  "!": ["0100","0100","0100","0000","0100"],
-};
-
-function pixelToastLine(line: string) {
-  return [...line].flatMap((letter, index) =>
-    toastLetters[letter].flatMap((row, y) =>
-      [...row].map((pixel, x) => pixel === "1" ? `M${index * 5 + x} ${y}h1v1h-1z` : "")
-    )
-  ).join("");
-}
-
 function ThanksgivingToast() {
-  return <svg className="thanksgiving-toast" viewBox="0 0 88 34" shapeRendering="crispEdges"
-    role="img" aria-label="A turkey raises a glass. Gobble, gobble. Cheers!">
-    <g className="turkey-tail">
-      <path fill="#ab483c" d="M4 17h2v-3h5v2h4v3h4v8H9v-3H6v-3H4z" />
-      <path fill="#da7950" d="M7 10h2V7h5v2h3v4h3v4h3v8H14v-4h-3v-4H8v-4H7z" />
-      <path fill="#efb761" d="M15 7h2V4h5v2h3v6h2v12h-8v-7h-2v-5h-2z" />
-      <path fill="#ca6844" d="M25 7h6v3h2v8h-4v7h-6V13h2z" />
-    </g>
-    <path fill="#efb761" d="M17 27h2v4h3v2h-7v-2h2zm8 0h2v4h3v2h-7v-2h2z" />
-    <path fill="#824d38" d="M13 19h3v-3h11v-2h2V8h2V6h6v2h2v7h-2v7h-2v4h-4v3H17v-2h-4v-3h-2v-3h2z" />
-    <path fill="#b37755" d="M31 8h2V6h4v2h2v6h-2v4h-5v-3h-2v-5h1zM16 21h3v-2h8v2h-2v3h-3v2h-5v-2h-1z" />
-    <path fill="#efb761" d="M39 10h3v1h2v2h-5z" />
-    <path fill="#b55541" d="M39 13h2v2h-1v3h-2v-3h1z" />
-    <path fill="#16100e" d="M36 9h2v2h-2z" />
-    <g className="turkey-glass">
-      <path fill="#a96849" d="M28 22h7v-2h4v-2h4v3h-3v2h-4v2h-8z" />
-      <path fill="#fff4dd" d="M38 13h13v2h-1v2h-2v2h-2v5h3v1h-8v-1h3v-5h-2v-2h-2v-2h-2z" />
-      <path fill="#efb761" d="M41 15h8v2h-2v2h-4v-2h-2z" />
-    </g>
-    <path className="turkey-spark" fill="#efb761" d="M47 4h1v2h2v1h-2v2h-1V7h-2V6h2zm5 5h1v1h1v1h-1v1h-1v-1h-1v-1h1z" />
-    <path fill="#fff4dd" transform="translate(54 4)" d={pixelToastLine("Gobble,")} />
-    <path fill="#fff4dd" transform="translate(54 13)" d={pixelToastLine("gobble")} />
-    <g className="turkey-cheers" transform="translate(54 22)">
-      <path fill="#efb761" d={pixelToastLine("Cheers!")} />
-    </g>
-  </svg>;
+  return <span className="people-sprite thanksgiving-toast" role="img"
+    aria-label="A host and a turkey clink glasses. Gobble, gobble. Cheers!" />;
 }
 
 function Footer({ message = defaultFooter, page, guest = false }: { message?: string; page?: string; guest?: boolean }) {
