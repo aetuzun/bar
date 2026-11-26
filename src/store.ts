@@ -9,7 +9,7 @@ import {
   type Recipe,
 } from "./data";
 import { describe, pourStyles, type Pour } from "./pours";
-export const animations = { shaker: "Cocktail shaker", bartender: "Behind the bar", toast: "A toast for two", dance: "Dance partners", friends: "Cheers with friends", family: "Family high-five" } as const;
+export const animations = { shaker: "Cocktail shaker", bartender: "Behind the bar", toast: "A toast for two", dance: "Dance partners", friends: "Cheers with friends", family: "Family high-five", thanksgiving: "Thanksgiving turkey toast" } as const;
 export type Scene = keyof typeof animations;
 const sceneOf = (value: unknown): Scene =>
   typeof value === "string" && Object.prototype.hasOwnProperty.call(animations, value) ? value as Scene : "shaker";

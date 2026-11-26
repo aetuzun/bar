@@ -98,7 +98,8 @@ function Header({ route, guest = false, scene = "shaker", appPath = "" }: { rout
             if (event.target === event.currentTarget && event.animationName === "guest-island") setIntro(false);
           }}
         >
-          <span className={scene === "shaker" ? "guest-pour" : "people-sprite " + scene} aria-hidden="true" />
+          {scene === "thanksgiving" ? <ThanksgivingToast /> :
+            <span className={scene === "shaker" ? "guest-pour" : "people-sprite " + scene} aria-hidden="true" />}
         </button>
       )}
     </header>
@@ -132,6 +133,33 @@ function BarIntro() {
     <div><Illustration id="martini" /><strong><Wordmark /></strong></div>
   </div> : null;
 }
+function ThanksgivingToast() {
+  return <svg className="thanksgiving-toast" viewBox="0 0 360 126" aria-hidden="true">
+    <g className="turkey-tail">
+      <ellipse cx="83" cy="73" rx="15" ry="33" fill="#b55541" transform="rotate(-54 83 73)" />
+      <ellipse cx="95" cy="57" rx="14" ry="35" fill="#df8552" transform="rotate(-30 95 57)" />
+      <ellipse cx="115" cy="52" rx="14" ry="34" fill="#efb761" transform="rotate(-5 115 52)" />
+      <ellipse cx="132" cy="59" rx="13" ry="30" fill="#d27646" transform="rotate(24 132 59)" />
+    </g>
+    <path d="M102 106v10m24-10v10m-31 0h14m10 0h14" stroke="#efb761" strokeWidth="3" strokeLinecap="round" />
+    <ellipse cx="116" cy="86" rx="30" ry="24" fill="#824d38" />
+    <ellipse cx="117" cy="88" rx="17" ry="10" fill="#a96849" transform="rotate(-18 117 88)" />
+    <path d="M139 55q13 0 14 11l-6 18h-17l2-20z" fill="#b37755" />
+    <circle cx="143" cy="55" r="13" fill="#b37755" />
+    <circle cx="147" cy="52" r="2.6" fill="#16100e" />
+    <path d="m153 54 11 5-11 4z" fill="#efb761" />
+    <path d="M153 62q5 11-2 12-5-1-3-9" fill="#b55541" />
+    <g className="turkey-glass">
+      <path d="M148 88q20 1 32-12" fill="none" stroke="#a96849" strokeWidth="7" strokeLinecap="round" />
+      <path d="M167 50h28l-14 15z" fill="#efb761" />
+      <path d="M165 45h32l-16 21zm16 21v13m-8 0h16" fill="none" stroke="#fff4dd" strokeWidth="2" strokeLinejoin="round" />
+    </g>
+    <path className="turkey-spark" d="M194 26v10m-5-5h10m7 8v6m-3-3h6" fill="none" stroke="#efb761" strokeWidth="2" strokeLinecap="round" />
+    <text x="216" y="60" fill="#fff4dd" fontSize="20" fontWeight="700">Gobble, gobble.</text>
+    <text x="216" y="86" fill="#efb761" fontSize="19">Cheers!</text>
+  </svg>;
+}
+
 function Footer({ message = defaultFooter, page, guest = false }: { message?: string; page?: string; guest?: boolean }) {
   const footer = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -1050,17 +1078,6 @@ function Menu({
           value={state.title}
           onChange={(e) => {
             update({ ...state, title: e.target.value });
-            setNotice("");
-          }}
-        />
-      </label>
-      <label className="title-field">
-        <span>Guest message</span>
-        <input
-          maxLength={100}
-          value={state.footer}
-          onChange={(e) => {
-            update({ ...state, footer: e.target.value });
             setNotice("");
           }}
         />
