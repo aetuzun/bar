@@ -1111,6 +1111,14 @@ dialog .step-count { margin-top: 0; }
 .prep-art .glass { height: 112%; }
 .prep-body h2 { margin: 8px 0 20px; }
 .prep-body .method { margin: 18px 0 0; }
+.serving-stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: var(--pill-radius); white-space: nowrap; }
+.serving-stepper button { width: 34px; height: 34px; border-radius: 50%; font: 400 1.1rem Arial, sans-serif; }
+.serving-stepper button:enabled:hover { background: var(--plate); }
+.serving-stepper button:disabled { opacity: .45; }
+.serving-stepper span { padding-inline: 2px; font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) {
+  .serving-stepper button { width: 44px; height: 44px; }
+}
 .menu-section { margin-block: 28px; }
 .menu-section .menurow .drink-art { height: clamp(140px, 16vw, 200px); }
 .curator-tools:empty { display: none; }

@@ -586,7 +586,9 @@ export function measure(
 ) {
   return unit === "ml"
     ? Number((amount / 30).toFixed(2)) + " oz / " + amount + " ml"
-    : amount + " " + (unit === "dashes" && amount === 1 ? "dash" : unit);
+    : amount + " " + (amount === 1
+        ? { dashes: "dash", leaves: "leaf", wedge: "wedge" }[unit]
+        : unit === "wedge" ? "wedges" : unit);
 }
 
 const extraKinds: Record<string, Group> = {

@@ -595,8 +595,10 @@ function RecipeSheet({ r, dialog, edit, onClose }: {
   edit?: () => void;
   onClose?: () => void;
 }) {
+  const [servings, setServings] = useState(1);
   return <dialog className="prep-sheet" ref={dialog} aria-label={r.name + " recipe"}
-    onClose={onClose} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
+    onClose={() => { setServings(1); onClose?.(); }}
+    onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
         <div className="prep-body">
         <button className="card-remove" aria-label="Close recipe" onClick={() => dialog.current?.close()}><span /></button>
         <div className="prep-art"><Glass recipe={r} /></div>
@@ -607,13 +609,19 @@ function RecipeSheet({ r, dialog, edit, onClose }: {
       <section className="measures">
         <div className="label-row">
           <h3>Ingredients</h3>
-          <span>Serves 1</span>
+          <div className="serving-stepper" role="group" aria-label="Adjust servings">
+            <button type="button" disabled={servings === 1} aria-label="Fewer servings"
+              onClick={() => setServings(count => Math.max(1, count - 1))}>−</button>
+            <span aria-live="polite">Serves {servings}</span>
+            <button type="button" disabled={servings === 99} aria-label="More servings"
+              onClick={() => setServings(count => Math.min(99, count + 1))}>+</button>
+          </div>
         </div>
         <ul className="ingredients">
           {r.ingredients.map(([kind, amount, unit], index) => (
             <li key={index}>
               <span>{unit === "ml" && (kind === "Lime" || kind === "Lemon") ? kind + " juice" : kind}</span>
-              <span>{measure(amount, unit)}</span>
+              <span>{measure(Number((amount * servings).toPrecision(12)), unit)}</span>
             </li>
           ))}
           <li>
