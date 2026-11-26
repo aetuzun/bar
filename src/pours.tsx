@@ -8,19 +8,21 @@ export const pourStyles = [
   "Sparkling wine",
   "Wine",
 ] as const;
-export type Pour = { name: string; style: (typeof pourStyles)[number] };
+export type Pour = { name: string; style: (typeof pourStyles)[number]; whiskyType?: string };
 export const eligible = (item: Item) =>
   item.group === "Whiskies" || item.group === "Wine & sparkling";
 export const inStock = (item: Item) =>
   eligible(item) && (item.status === "Available" || item.status === "Low");
 export function describe(item: Item): Pour {
+  if (item.group === "Whiskies") {
+    const whiskyType = item.kind.trim().slice(0, 80);
+    return { name: item.name, style: "Whisky", whiskyType: whiskyType || undefined };
+  }
   const explicit = pourStyles.find(style => style === item.kind && style !== "Whisky");
   if (item.group === "Wine & sparkling" && explicit) return { name: item.name, style: explicit };
   const text = (item.kind + " " + item.name).toLowerCase();
   const style =
-    item.group === "Whiskies"
-      ? "Whisky"
-      : /prosecco|sparkling|champagne|cava|crémant/.test(text)
+    /prosecco|sparkling|champagne|cava|crémant/.test(text)
         ? "Sparkling wine"
         : /rosé|\brose\b/.test(text)
           ? "Rosé"
@@ -50,7 +52,7 @@ export function PourRow({ pour }: { pour: Pour }) {
       </div>
       <div>
         <h2>{pour.name}</h2>
-        <p className="flavor">{pour.style}</p>
+        <p className="flavor">{pour.whiskyType || pour.style}</p>
       </div>
     </>
   );

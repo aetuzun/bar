@@ -845,6 +845,17 @@ function menuSections(ids: string[], pour: (id: string) => Pour) {
   for (const id of ids) sections[libraryRecipe(id) || id.startsWith("custom-") ? 0 : pour(id).style === "Whisky" ? 1 : 2].ids.push(id);
   return sections.filter(section => section.ids.length);
 }
+function GuestTrack({ label, children }: { label: string; children: React.ReactNode[] }) {
+  const loop = children.length > 1;
+  const scrolling = useLoopingScroll(loop);
+  return <div className="menu-track guest-track" tabIndex={0} role="region" aria-label={label} {...scrolling}>
+    <div className="loop-track">
+      {(loop ? [0, 1, 2, 3] : [0]).map(copy => <div className="loop-run" key={copy} aria-hidden={copy ? true : undefined}>
+        {children}
+      </div>)}
+    </div>
+  </div>;
+}
 function GuestList({
   ids,
   title,
@@ -867,7 +878,7 @@ function GuestList({
       <div className="guest-list">
         {menuSections(visible, id => pours[Number(id.slice(1))]).map(section => <section className="menu-section" key={section.name}>
           <h2>{section.name}</h2>
-          <div className="menu-track" tabIndex={0} role="region" aria-label={section.name}>{section.ids.map((id) => (
+          <GuestTrack label={section.name} key={section.ids.join(",")}>{section.ids.map((id) => (
           <article className="menurow" key={id}>
             {libraryRecipe(id) ? (
               <MenuDrink r={libraryRecipe(id)!} />
@@ -877,7 +888,7 @@ function GuestList({
               <PourRow pour={pours[Number(id.slice(1))]} />
             )}
           </article>
-        ))}</div></section>)}
+        ))}</GuestTrack></section>)}
       </div>
       {!ids.length && <EmptySuggestions prompt="No drinks on this menu yet." />}
     </>
@@ -1199,17 +1210,15 @@ function Manager({ route }: { route: string }) {
     </>
   );
 }
-function AboutGallery() {
+function useLoopingScroll(enabled: boolean) {
   const viewport = useRef<HTMLDivElement>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
   const mouseOver = useRef(false);
   const resumeAfter = useRef(0);
-  const [selected, setSelected] = useState<Recipe | null>(null);
 
   useEffect(() => {
     const scroller = viewport.current;
     const firstRun = scroller?.firstElementChild?.firstElementChild;
-    if (!scroller || !firstRun || selected) return;
+    if (!scroller || !firstRun || !enabled) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let inView = false;
     let frame = 0;
@@ -1219,7 +1228,7 @@ function AboutGallery() {
     const advance = (time: number) => {
       const elapsed = previousTime ? Math.min(time - previousTime, 50) : 0;
       previousTime = time;
-      if (!mouseOver.current && !scroller.querySelector(":focus-visible") && time >= resumeAfter.current) {
+      if (!mouseOver.current && !scroller.matches(":focus-visible") && !scroller.querySelector(":focus-visible") && time >= resumeAfter.current) {
         distance += elapsed * 0.028;
         const pixels = Math.floor(distance);
         if (pixels) {
@@ -1246,20 +1255,29 @@ function AboutGallery() {
       motion.removeEventListener("change", updateMotion);
       cancelAnimationFrame(frame);
     };
-  }, [selected]);
+  }, [enabled]);
 
   const pauseForBrowsing = () => { resumeAfter.current = performance.now() + 1800; };
+  return {
+    ref: viewport,
+    onPointerEnter: (event: React.PointerEvent) => { if (event.pointerType === "mouse") mouseOver.current = true; },
+    onPointerLeave: (event: React.PointerEvent) => { if (event.pointerType === "mouse") mouseOver.current = false; },
+    onPointerDown: pauseForBrowsing, onPointerUp: pauseForBrowsing,
+    onPointerCancel: pauseForBrowsing, onWheel: pauseForBrowsing,
+  };
+}
+
+function AboutGallery() {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [selected, setSelected] = useState<Recipe | null>(null);
+  const scrolling = useLoopingScroll(!selected);
   const openRecipe = (recipe: Recipe) => {
     flushSync(() => setSelected(recipe));
     dialog.current?.showModal();
   };
 
   return <section className="about-gallery" aria-label="Cocktail gallery">
-    <div className="about-gallery-window" ref={viewport}
-      onPointerEnter={event => { if (event.pointerType === "mouse") mouseOver.current = true; }}
-      onPointerLeave={event => { if (event.pointerType === "mouse") mouseOver.current = false; }}
-      onPointerDown={pauseForBrowsing} onPointerUp={pauseForBrowsing}
-      onPointerCancel={pauseForBrowsing} onWheel={pauseForBrowsing}>
+    <div className="about-gallery-window" {...scrolling}>
       <div className="about-gallery-track">
         {[false, true].map(copy => <div className="about-gallery-run" key={String(copy)} aria-hidden={copy || undefined}>
           {recipes.map(recipe => <button className="about-gallery-card" type="button" key={recipe.id}

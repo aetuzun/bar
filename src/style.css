@@ -1201,6 +1201,15 @@ main:has(> .publish) { padding-bottom: 8px; }
 .recipe-preview .composition, .menu-track .menurow .composition { margin-top: 10px; line-height: 1.4; font-size: .875rem; color: var(--muted); }
 .recipe-preview .recipe-tools { margin-top: 6px; padding-top: 1px; }
 .menu-track { gap: 10px; }
+.guest-track { display: block; scroll-snap-type: none; scrollbar-width: none; }
+.guest-track::-webkit-scrollbar { display: none; }
+.loop-track, .loop-run { display: flex; width: max-content; }
+.loop-run { gap: 10px; padding-inline-end: 10px; }
+.guest-track .loop-run .menurow { flex: 0 0 clamp(220px, 74vw, 285px); }
+@media (prefers-reduced-motion: reduce) {
+  .loop-run[aria-hidden="true"] { display: none; }
+  .loop-run { padding-inline-end: 0; }
+}
 .menu-track .menurow { padding: 14px; gap: 4px; }
 .menu-track .drink-art .glass { transform: scale(1.09); }
 .menu-track .menurow .drink-art { height: clamp(215px, 23vw, 250px); }

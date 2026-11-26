@@ -70,7 +70,10 @@ function readSnapshot(
         p.name.length <= 100 &&
         pourStyles.includes(p.style),
     )
-      ? raw.map((p) => ({ name: p.name, style: p.style }))
+      ? raw.map((p) => ({ name: p.name, style: p.style,
+          whiskyType: p.style === "Whisky" && typeof p.whiskyType === "string"
+            ? p.whiskyType.trim().slice(0, 80) || undefined : undefined,
+        }))
       : [];
   const cocktails: GuestCocktail[] = Array.isArray(custom) ? custom.slice(0, 100).filter(drink =>
     drink && typeof drink.id === "string" && /^custom-[\da-f-]{36}$/.test(drink.id) &&
